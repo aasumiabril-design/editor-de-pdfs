@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Studio Pro | Adrian</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .page-card:hover .action-btns { opacity: 1; }
+        .sortable-ghost { opacity: 0.1; transform: scale(0.95); background: #6366f1; }
+        #previewModal { display: none; }
+        #modalImageContainer { display: flex; justify-content: center; overflow: auto; width: 100%; max-height: 75vh; background: #0f172a; border-radius: 12px; }
+        #modalImg { transform-origin: top center; transition: transform 0.1s; max-width: 100%; }
+        #pagesGrid { counter-reset: pdf-counter; }
+        .page-number::before { counter-increment: pdf-counter; content: counter(pdf-counter); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen">
+
+    <nav class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-2">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fas fa-file-pdf text-xl"></i></div>
+                <h1 class="text-xl font-bold tracking-tight text-slate-800">PDF Studio <span class="text-indigo-600">Pro</span></h1>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+                <input type="text" id="outputFileName" placeholder="Nombre archivo..." class="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-48">
+                <button onclick="splitByRange()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 transition-all">
+                    <i class="fas fa-columns"></i> Separar por Grupos
+                </button>
+                <button onclick="exportPDF()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold text-sm shadow-md flex items-center gap-2 transition-all">
+                    <i class="fas fa-download"></i> Guardar Todo
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <div id="dropzone" class="bg-white border-2 border-dashed border-slate-300 rounded-2xl p-10 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/50 transition-all mb-10 group">
+            <input type="file" id="fileInput" multiple accept=".pdf,image/*" class="hidden" onchange="handleFiles(this.files)">
+            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform"><i class="fas fa-cloud-upload-alt text-slate-500 group-hover:text-indigo-600 text-2xl"></i></div>
+            <h3 class="text-lg font-semibold text-slate-700">Importar Documentos</h3>
+            <p class="text-slate-400 text-sm">PDFs o Imágenes</p>
+        </div>
+
+        <div id="editorContainer" class="hidden">
+            <div class="flex justify-between items-center mb-6 px-2">
+                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">Páginas en Mesa</h2>
+                <button onclick="clearAll()" class="text-red-500 text-xs font-bold hover:bg-red-50 px-3 py-1 rounded-md transition-colors">LIMPIAR</button>
+            </div>
+            <div id="pagesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6"></div>
+        </div>
+    </main>
+
+    <div id="previewModal" class="fixed inset-0 bg-slate-900/98 z-[100] p-4 flex flex-col items-center justify-center backdrop-blur-sm">
+        <div class="w-full max-w-5xl flex justify-between items-center mb-4 text-white">
+            <div class="flex gap-2">
+                <button onclick="zoomIn()" class="bg-slate-800 p-2.5 rounded-lg hover:bg-slate-700"><i class="fas fa-search-plus"></i></button>
+                <button onclick="zoomOut()" class="bg-slate-800 p-2.5 rounded-lg hover:bg-slate-700"><i class="fas fa-search-minus"></i></button>
+                <button onclick="startCrop()" id="cropBtn" class="bg-indigo-600 px-5 py-2.5 rounded-lg text-sm font-bold">Recortar</button>
+                <button onclick="confirmCrop()" id="confirmCropBtn" class="bg-emerald-600 px-5 py-2.5 rounded-lg text-sm font-bold hidden">Confirmar</button>
+                <button onclick="cancelCrop()" id="cancelCropBtn" class="bg-rose-600 px-5 py-2.5 rounded-lg text-sm font-bold hidden">Cancelar</button>
+            </div>
+            <button onclick="closePreview()" class="text-slate-400 hover:text-white text-4xl">&times;</button>
+        </div>
+        <div id="modalImageContainer"><img id="modalImg" src=""></div>
+        <div id="cropperContainer" class="rounded-xl overflow-hidden"><img id="cropperImg" src=""></div>
+    </div>
+
+    <div id="loader" class="hidden fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[200] backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-2xl flex flex-col items-center shadow-2xl">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mb-4"></div>
+            <p class="text-sm font-bold text-slate-800">Procesando...</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        let allPages = []; let cropper = null; let currentEditingPageId = null; let currentZoom = 1;
+        const pagesGrid = document.getElementById('pagesGrid');
+        const loader = document.getElementById('loader');
+
+        new Sortable(pagesGrid, { animation: 150, ghostClass: 'sortable-ghost' });
+        document.getElementById('dropzone').onclick = () => document.getElementById('fileInput').click();
+
+        async function handleFiles(files) {
+            if (files.length === 0) return;
+            loader.classList.remove('hidden');
+            document.getElementById('editorContainer').classList.remove('hidden');
+            for (const file of files) {
+                const cleanName = file.name.replace(/\.[^/.]+$/, "");
+                if (file.type === "application/pdf") {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const viewport = page.getViewport({scale: 2.0});
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height; canvas.width = viewport.width;
+                        await page.render({canvasContext: context, viewport: viewport}).promise;
+                        addPageToGrid(arrayBuffer, i - 1, canvas.toDataURL('image/jpeg', 0.9), "pdf", cleanName);
+                    }
+                } else if (file.type.startsWith("image/")) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => addPageToGrid(e.target.result, 0, e.target.result, "image", cleanName);
+                    reader.readAsDataURL(file);
+                }
+            }
+            loader.classList.add('hidden');
+        }
+
+        function addPageToGrid(originalData, originalIndex, displayData, type, originalName) {
+            const pageId = Math.random().toString(36).substr(2, 9);
+            allPages.push({ id: pageId, originalData, originalIndex, currentData: displayData, originalCrop: displayData, type, originalName });
+            const div = document.createElement('div');
+            div.className = 'page-card group relative bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:shadow-xl transition-all';
+            div.dataset.id = pageId;
+            div.innerHTML = `
+                <div class="page-number absolute -top-2 -left-2 bg-slate-800 text-white w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold z-10 shadow-lg border border-slate-700"></div>
+                <img src="${displayData}" class="w-full h-44 object-contain bg-slate-50 rounded-lg cursor-pointer" onclick="openPreview('${pageId}')">
+                <div class="action-btns opacity-0 absolute top-4 right-4 flex flex-col gap-2 transition-opacity z-20">
+                    <button onclick="event.stopPropagation(); deletePage('${pageId}')" class="w-8 h-8 bg-white text-rose-500 rounded-lg shadow-lg flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"><i class="fas fa-trash-alt"></i></button>
+                </div>
+                <p class="text-[9px] text-slate-400 mt-2 truncate text-center font-medium uppercase tracking-tight">${originalName}</p>
+            `;
+            pagesGrid.appendChild(div);
+        }
+
+        async function splitByRange() {
+            const items = Array.from(pagesGrid.children);
+            if (items.length === 0) return;
+            const size = parseInt(prompt("¿Cuántas páginas quieres por cada PDF?", "1"));
+            if (isNaN(size) || size <= 0) return;
+            
+            const fileName = document.getElementById('outputFileName').value.trim() || "documento";
+            loader.classList.remove('hidden');
+
+            for (let i = 0; i < items.length; i += size) {
+                const chunk = items.slice(i, i + size);
+                const subPdf = await PDFLib.PDFDocument.create();
+                
+                for (const item of chunk) {
+                    const pageId = item.dataset.id;
+                    const pageObj = allPages.find(p => p.id === pageId);
+                    if (pageObj.type === "pdf" && pageObj.currentData === pageObj.originalCrop) {
+                        const srcDoc = await PDFLib.PDFDocument.load(pageObj.originalData);
+                        const [copiedPage] = await subPdf.copyPages(srcDoc, [pageObj.originalIndex]);
+                        subPdf.addPage(copiedPage);
+                    } else {
+                        const imgRes = await fetch(pageObj.currentData);
+                        const imgBytes = await imgRes.arrayBuffer();
+                        const img = pageObj.currentData.includes("png") ? await subPdf.embedPng(imgBytes) : await subPdf.embedJpg(imgBytes);
+                        const page = subPdf.addPage([img.width, img.height]);
+                        page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+                    }
+                }
+                const pdfBytes = await subPdf.save();
+                downloadBlob(pdfBytes, `${fileName}_parte_${(i/size)+1}.pdf`);
+            }
+            loader.classList.add('hidden');
+        }
+
+        async function exportPDF() {
+            const items = Array.from(pagesGrid.children);
+            if (items.length === 0) return;
+            const fileName = document.getElementById('outputFileName').value.trim() || "documento_final";
+            loader.classList.remove('hidden');
+            try {
+                const mergedPdf = await PDFLib.PDFDocument.create();
+                for (const item of items) {
+                    const pageId = item.dataset.id;
+                    const pageObj = allPages.find(p => p.id === pageId);
+                    if (pageObj.type === "pdf" && pageObj.currentData === pageObj.originalCrop) {
+                        const srcDoc = await PDFLib.PDFDocument.load(pageObj.originalData);
+                        const [copiedPage] = await mergedPdf.copyPages(srcDoc, [pageObj.originalIndex]);
+                        mergedPdf.addPage(copiedPage);
+                    } else {
+                        const imgRes = await fetch(pageObj.currentData);
+                        const imgBytes = await imgRes.arrayBuffer();
+                        const img = pageObj.currentData.includes("png") ? await mergedPdf.embedPng(imgBytes) : await mergedPdf.embedJpg(imgBytes);
+                        const page = mergedPdf.addPage([img.width, img.height]);
+                        page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+                    }
+                }
+                const pdfBytes = await mergedPdf.save();
+                downloadBlob(pdfBytes, `${fileName}.pdf`);
+            } catch (e) { alert("Error"); }
+            loader.classList.add('hidden');
+        }
+
+        function downloadBlob(data, name) {
+            const blob = new Blob([data], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url; link.download = name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function openPreview(pageId) {
+            const pageObj = allPages.find(p => p.id === pageId);
+            currentEditingPageId = pageId; currentZoom = 1;
+            document.getElementById('modalImg').src = pageObj.currentData;
+            document.getElementById('modalImg').style.transform = `scale(1)`;
+            document.getElementById('previewModal').style.display = 'flex';
+        }
+
+        function startCrop() {
+            const pageObj = allPages.find(p => p.id === currentEditingPageId);
+            document.getElementById('modalImageContainer').style.display = 'none';
+            const cropperImg = document.getElementById('cropperImg');
+            cropperImg.src = pageObj.originalCrop;
+            document.getElementById('cropperContainer').style.display = 'block';
+            document.getElementById('cropBtn').classList.add('hidden');
+            document.getElementById('confirmCropBtn').classList.remove('hidden');
+            document.getElementById('cancelCropBtn').classList.remove('hidden');
+            cropper = new Cropper(cropperImg, { viewMode: 1, autoCropArea: 1 });
+        }
+
+        function confirmCrop() {
+            if (!cropper) return;
+            const croppedDataUrl = cropper.getCroppedCanvas({ imageSmoothingQuality: 'high' }).toDataURL('image/jpeg', 0.95);
+            const idx = allPages.findIndex(p => p.id === currentEditingPageId);
+            allPages[idx].currentData = croppedDataUrl;
+            document.querySelector(`[data-id="${currentEditingPageId}"] img`).src = croppedDataUrl;
+            document.getElementById('modalImg').src = croppedDataUrl;
+            cancelCrop();
+        }
+
+        function cancelCrop() {
+            if (cropper) { cropper.destroy(); cropper = null; }
+            document.getElementById('cropperContainer').style.display = 'none';
+            document.getElementById('modalImageContainer').style.display = 'flex';
+            document.getElementById('cropBtn').classList.remove('hidden');
+            document.getElementById('confirmCropBtn').classList.add('hidden');
+            document.getElementById('cancelCropBtn').classList.add('hidden');
+        }
+
+        function zoomIn() { currentZoom += 0.3; updateZoom(); }
+        function zoomOut() { currentZoom = Math.max(0.4, currentZoom - 0.3); updateZoom(); }
+        function updateZoom() { const img = document.getElementById('modalImg'); img.style.transform = `scale(${currentZoom})`; img.style.maxWidth = currentZoom > 1 ? 'none' : '100%'; }
+        function closePreview() { cancelCrop(); document.getElementById('previewModal').style.display = 'none'; }
+        function deletePage(id) { document.querySelector(`[data-id="${id}"]`).remove(); }
+        function clearAll() { if(confirm("¿Limpiar todo?")) { pagesGrid.innerHTML = ""; allPages = []; document.getElementById('editorContainer').classList.add('hidden'); } }
+    </script>
+</body>
+</html>
