@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Studio Pro | Adrian</title>
+    <title>PDF Editor Pro | Adrian</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -28,12 +28,16 @@
     <nav class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto flex flex-col xl:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-2">
-                <div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fas fa-file-pdf text-xl"></i></div>
-                <h1 class="text-xl font-bold tracking-tight text-slate-800">PDF Studio <span class="text-indigo-600">Pro</span></h1>
+                <div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fas fa-magic text-xl"></i></div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-800">PDF Editor <span class="text-indigo-600">Pro</span></h1>
+                    <p class="text-[10px] text-slate-400 font-medium uppercase tracking-widest">Editor Integral de Documentos PDF</p>
+                </div>
             </div>
             
             <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-end">
-                <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-lg border border-slate-200" title="Elegir formato de salida de las hojas">
+                    <i class="fas fa-expand text-slate-400 ml-2 text-xs"></i>
                     <select id="pageSize" onchange="toggleManualSize()" class="bg-transparent text-xs font-bold px-2 py-1 outline-none">
                         <option value="original">Tamaño Original</option>
                         <option value="letter">Carta (Letter)</option>
@@ -42,19 +46,18 @@
                     </select>
                     <div id="manualInputs" class="hidden flex items-center gap-1 border-l border-slate-300 pl-2">
                         <input type="number" id="manualW" placeholder="Ancho" class="w-12 text-[10px] p-1 rounded">
-                        <span class="text-[10px]">x</span>
                         <input type="number" id="manualH" placeholder="Alto" class="w-12 text-[10px] p-1 rounded">
                     </div>
                 </div>
 
-                <input type="text" id="outputFileName" placeholder="Nombre archivo..." class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-32 md:w-40">
+                <input type="text" id="outputFileName" placeholder="Nombre del PDF..." class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-32 md:w-40">
                 
                 <div class="flex gap-2">
-                    <button onclick="splitByRange()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-2 rounded-lg font-semibold text-xs flex items-center gap-2 transition-all">
-                        <i class="fas fa-columns"></i> Separar
+                    <button onclick="splitByRange()" title="Dividir el documento en varios archivos" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-2 rounded-lg font-semibold text-xs flex items-center gap-2 transition-all">
+                        <i class="fas fa-scissors"></i> Separar
                     </button>
-                    <button onclick="exportPDF()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold text-xs shadow-md flex items-center gap-2 transition-all">
-                        <i class="fas fa-download"></i> Guardar Todo
+                    <button onclick="exportPDF()" title="Unir todo en un solo PDF" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold text-xs shadow-md flex items-center gap-2 transition-all">
+                        <i class="fas fa-file-download"></i> Guardar Final
                     </button>
                 </div>
             </div>
@@ -62,17 +65,43 @@
     </nav>
 
     <main class="max-w-7xl mx-auto px-6 py-8">
-        <div id="dropzone" class="bg-white border-2 border-dashed border-slate-300 rounded-2xl p-10 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/50 transition-all mb-10 group">
+        <div id="welcomePanel" class="mb-10 text-center">
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">¡Bienvenido a tu Editor de PDF!</h2>
+            <p class="text-slate-500 max-w-2xl mx-auto text-sm">Organiza, recorta, combina imágenes con PDFs y ajusta el tamaño de hoja en segundos. Todo el proceso es privado y ocurre en tu navegador.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 max-w-4xl mx-auto">
+                <div class="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+                    <i class="fas fa-upload text-indigo-500 mb-2"></i>
+                    <p class="text-xs font-bold">1. Puedes Subir Archivos</p>
+                    <p class="text-[11px] text-slate-400">PDFs o fotos (JPG/PNG)</p>
+                </div>
+                <div class="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+                    <i class="fas fa-arrows-alt text-indigo-500 mb-2"></i>
+                    <p class="text-xs font-bold">2. Puedes Ordenra y Editar</p>
+                    <p class="text-[11px] text-slate-400">Arrastra para reordenar o recorta</p>
+                </div>
+                <div class="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+                    <i class="fas fa-file-export text-indigo-500 mb-2"></i>
+                    <p class="text-xs font-bold">3. Puedes Exportar</p>
+                    <p class="text-[11px] text-slate-400">Un solo PDF o varios por grupos</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="dropzone" class="bg-white border-2 border-dashed border-slate-300 rounded-2xl p-10 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/50 transition-all mb-10 group shadow-sm">
             <input type="file" id="fileInput" multiple accept=".pdf,image/*" class="hidden" onchange="handleFiles(this.files)">
-            <div class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform"><i class="fas fa-cloud-upload-alt text-slate-500 group-hover:text-indigo-600 text-xl"></i></div>
-            <h3 class="text-base font-semibold text-slate-700">Importar Documentos</h3>
-            <p class="text-slate-400 text-xs">PDFs o Imágenes</p>
+            <div class="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform"><i class="fas fa-plus text-indigo-600 text-xl"></i></div>
+            <h3 class="text-lg font-bold text-slate-700">Añadir Archivos</h3>
+            <p class="text-slate-400 text-xs">Suelta tus documentos aquí o haz clic para explorar</p>
         </div>
 
         <div id="editorContainer" class="hidden">
-            <div class="flex justify-between items-center mb-6 px-2">
-                <h2 class="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">Páginas en Mesa</h2>
-                <button onclick="clearAll()" class="text-red-500 text-xs font-bold hover:bg-red-50 px-3 py-1 rounded-md transition-colors">LIMPIAR</button>
+            <div class="flex justify-between items-center mb-6 px-2 border-b border-slate-200 pb-4">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800">Mesa de Trabajo</h2>
+                    <p class="text-[11px] text-slate-400">Haz clic en una página para verla en grande o recortarla</p>
+                </div>
+                <button onclick="clearAll()" class="bg-rose-50 text-rose-600 text-[10px] font-bold hover:bg-rose-600 hover:text-white px-3 py-1.5 rounded-md transition-all uppercase tracking-wider">Borrar Todo</button>
             </div>
             <div id="pagesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6"></div>
         </div>
@@ -81,10 +110,10 @@
     <div id="previewModal" class="fixed inset-0 bg-slate-900/98 z-[100] p-4 flex flex-col items-center justify-center backdrop-blur-sm">
         <div class="w-full max-w-5xl flex justify-between items-center mb-4 text-white">
             <div class="flex gap-2">
-                <button onclick="zoomIn()" class="bg-slate-800 p-2.5 rounded-lg hover:bg-slate-700"><i class="fas fa-search-plus"></i></button>
-                <button onclick="zoomOut()" class="bg-slate-800 p-2.5 rounded-lg hover:bg-slate-700"><i class="fas fa-search-minus"></i></button>
-                <button onclick="startCrop()" id="cropBtn" class="bg-indigo-600 px-5 py-2.5 rounded-lg text-sm font-bold">Recortar</button>
-                <button onclick="confirmCrop()" id="confirmCropBtn" class="bg-emerald-600 px-5 py-2.5 rounded-lg text-sm font-bold hidden">Confirmar</button>
+                <button onclick="zoomIn()" title="Aumentar tamaño" class="bg-slate-800 p-2.5 rounded-lg hover:bg-slate-700"><i class="fas fa-search-plus"></i></button>
+                <button onclick="zoomOut()" title="Disminuir tamaño" class="bg-slate-800 p-2.5 rounded-lg hover:bg-slate-700"><i class="fas fa-search-minus"></i></button>
+                <button onclick="startCrop()" id="cropBtn" title="Ajustar área de la página" class="bg-indigo-600 px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2"><i class="fas fa-crop"></i> Recortar</button>
+                <button onclick="confirmCrop()" id="confirmCropBtn" class="bg-emerald-600 px-5 py-2.5 rounded-lg text-sm font-bold hidden">Confirmar Recorte</button>
                 <button onclick="cancelCrop()" id="cancelCropBtn" class="bg-rose-600 px-5 py-2.5 rounded-lg text-sm font-bold hidden">Cancelar</button>
             </div>
             <button onclick="closePreview()" class="text-slate-400 hover:text-white text-4xl">&times;</button>
@@ -96,7 +125,7 @@
     <div id="loader" class="hidden fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[200] backdrop-blur-sm">
         <div class="bg-white p-8 rounded-2xl flex flex-col items-center shadow-2xl">
             <div class="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mb-4"></div>
-            <p class="text-sm font-bold text-slate-800">Procesando...</p>
+            <p class="text-sm font-bold text-slate-800">Generando archivos...</p>
         </div>
     </div>
 
@@ -118,6 +147,7 @@
         async function handleFiles(files) {
             if (files.length === 0) return;
             loader.classList.remove('hidden');
+            document.getElementById('welcomePanel').classList.add('hidden');
             document.getElementById('editorContainer').classList.remove('hidden');
             for (const file of files) {
                 const cleanName = file.name.replace(/\.[^/.]+$/, "");
@@ -149,12 +179,12 @@
             div.className = 'page-card group relative bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:shadow-xl transition-all';
             div.dataset.id = pageId;
             div.innerHTML = `
-                <div class="page-number absolute -top-2 -left-2 bg-slate-800 text-white w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold z-10 shadow-lg border border-slate-700"></div>
-                <img src="${displayData}" class="w-full h-44 object-contain bg-slate-50 rounded-lg cursor-pointer" onclick="openPreview('${pageId}')">
+                <div class="page-number absolute -top-2 -left-2 bg-indigo-600 text-white w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold z-10 shadow-lg border border-white"></div>
+                <img src="${displayData}" class="w-full h-44 object-contain bg-slate-50 rounded-lg cursor-pointer transition-all group-hover:brightness-95" onclick="openPreview('${pageId}')">
                 <div class="action-btns opacity-0 absolute top-4 right-4 flex flex-col gap-2 transition-opacity z-20">
-                    <button onclick="event.stopPropagation(); deletePage('${pageId}')" class="w-8 h-8 bg-white text-rose-500 rounded-lg shadow-lg flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"><i class="fas fa-trash-alt"></i></button>
+                    <button onclick="event.stopPropagation(); deletePage('${pageId}')" title="Eliminar página" class="w-8 h-8 bg-white text-rose-500 rounded-lg shadow-lg flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all border border-slate-100"><i class="fas fa-trash-alt text-[10px]"></i></button>
                 </div>
-                <p class="text-[9px] text-slate-400 mt-2 truncate text-center font-medium uppercase tracking-tight">${originalName}</p>
+                <p class="text-[9px] text-slate-400 mt-2 truncate text-center font-bold tracking-tight">${originalName}</p>
             `;
             pagesGrid.appendChild(div);
         }
@@ -166,14 +196,12 @@
             loader.classList.remove('hidden');
             try {
                 const mergedPdf = await PDFLib.PDFDocument.create();
-                
-                // Definir tamaño de página
                 const selection = document.getElementById('pageSize').value;
                 let targetSize = null;
                 if(selection === 'letter') targetSize = [612, 792];
                 else if(selection === 'legal') targetSize = [612, 1008];
                 else if(selection === 'manual') {
-                    const w = parseFloat(document.getElementById('manualW').value) * 2.83465; // mm to points
+                    const w = parseFloat(document.getElementById('manualW').value) * 2.83465;
                     const h = parseFloat(document.getElementById('manualH').value) * 2.83465;
                     if(w > 0 && h > 0) targetSize = [w, h];
                 }
@@ -181,27 +209,21 @@
                 for (const item of items) {
                     const pageId = item.dataset.id;
                     const pageObj = allPages.find(p => p.id === pageId);
-                    
                     let newPage;
-                    if (targetSize) {
-                        newPage = mergedPdf.addPage(targetSize);
-                    }
+                    if (targetSize) newPage = mergedPdf.addPage(targetSize);
 
                     if (pageObj.type === "pdf" && pageObj.currentData === pageObj.originalCrop && !targetSize) {
                         const srcDoc = await PDFLib.PDFDocument.load(pageObj.originalData);
                         const [copiedPage] = await mergedPdf.copyPages(srcDoc, [pageObj.originalIndex]);
                         mergedPdf.addPage(copiedPage);
                     } else {
-                        // Imagen, recorte o ajuste a tamaño fijo centrado
                         const imgRes = await fetch(pageObj.currentData);
                         const imgBytes = await imgRes.arrayBuffer();
                         const img = pageObj.currentData.includes("png") ? await mergedPdf.embedPng(imgBytes) : await mergedPdf.embedJpg(imgBytes);
-                        
                         if (!targetSize) {
                             newPage = mergedPdf.addPage([img.width, img.height]);
                             newPage.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
                         } else {
-                            // Escalar para ajustar y centrar
                             const scale = Math.min(targetSize[0] / img.width, targetSize[1] / img.height) * 0.95;
                             const dWidth = img.width * scale;
                             const dHeight = img.height * scale;
@@ -216,14 +238,14 @@
                 }
                 const pdfBytes = await mergedPdf.save();
                 downloadBlob(pdfBytes, `${fileName}.pdf`);
-            } catch (e) { console.error(e); alert("Error en exportación"); }
+            } catch (e) { alert("Error al exportar"); }
             loader.classList.add('hidden');
         }
 
         async function splitByRange() {
             const items = Array.from(pagesGrid.children);
             if (items.length === 0) return;
-            const size = parseInt(prompt("¿Páginas por PDF?", "1"));
+            const size = parseInt(prompt("¿Cada cuántas páginas quieres crear un nuevo PDF?", "1"));
             if (isNaN(size) || size <= 0) return;
             const fileName = document.getElementById('outputFileName').value.trim() || "documento";
             loader.classList.remove('hidden');
@@ -300,7 +322,7 @@
         function updateZoom() { const img = document.getElementById('modalImg'); img.style.transform = `scale(${currentZoom})`; img.style.maxWidth = currentZoom > 1 ? 'none' : '100%'; }
         function closePreview() { cancelCrop(); document.getElementById('previewModal').style.display = 'none'; }
         function deletePage(id) { document.querySelector(`[data-id="${id}"]`).remove(); }
-        function clearAll() { if(confirm("¿Limpiar todo?")) { pagesGrid.innerHTML = ""; allPages = []; document.getElementById('editorContainer').classList.add('hidden'); } }
+        function clearAll() { if(confirm("¿Limpiar todo?")) { location.reload(); } }
     </script>
 </body>
 </html>
