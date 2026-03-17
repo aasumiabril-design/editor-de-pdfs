@@ -14,75 +14,111 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
-        .page-card:hover .action-btns { opacity: 1; }
+        .page-card .action-btns { opacity: 1; }
+        @media (min-width: 768px) {
+            .page-card .action-btns { opacity: 0; }
+            .page-card:hover .action-btns { opacity: 1; }
+        }
         .sortable-ghost { opacity: 0.1; transform: scale(0.95); background: #6366f1; }
         #previewModal { display: none; }
         #modalImageContainer { display: flex; justify-content: center; overflow: auto; width: 100%; max-height: 70vh; background: #0f172a; border-radius: 12px; }
         #modalImg { transform-origin: top center; transition: transform 0.1s; max-width: 100%; }
         #pagesGrid { counter-reset: pdf-counter; }
         .page-number::before { counter-increment: pdf-counter; content: counter(pdf-counter); }
+
+        /* Estilos Pro para el selector de modo */
+        .mode-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 2px solid transparent; }
+        .mode-active { 
+            border-color: #6366f1 !important; 
+            background-color: #f5f7ff !important; 
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.1), 0 4px 6px -2px rgba(99, 102, 241, 0.05);
+            transform: translateY(-2px);
+        }
+        .mode-active .check-icon { display: flex !important; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
 
-    <nav class="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-50 shadow-sm">
+    <nav class="bg-white border-b border-slate-200 px-4 md:px-6 py-4 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fas fa-magic text-xl"></i></div>
                 <h1 class="text-xl font-bold tracking-tight text-slate-800">PDF Editor <span class="text-indigo-600">Pro</span></h1>
             </div>
-            <button onclick="exportPDF()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold text-sm shadow-md transition-all">
-                Guardar Todo en Uno
-            </button>
+            <div class="flex gap-2">
+                <input type="text" id="outputFileName" placeholder="Nombre..." class="hidden md:block px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-48">
+                <button id="navSaveBtn" onclick="exportPDF()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 md:px-5 py-2 rounded-lg font-bold text-sm shadow-md transition-all">
+                    Guardar Todo
+                </button>
+            </div>
         </div>
     </nav>
 
-    <main class="max-w-4xl mx-auto px-6 py-10">
+    <main class="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-10">
         
-        <section class="mb-8 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <section class="mb-6 md:mb-8 bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-1">1. Elige el tamaño de página</h2>
-                    <p class="text-xs text-slate-400">Las hojas se centrarán a este formato.</p>
+                    <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">1. Formato de Salida</h2>
+                    <p class="text-xs text-slate-400">Las hojas se ajustarán a este tamaño.</p>
                 </div>
-                <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
-                    <select id="pageSize" onchange="toggleManualSize()" class="bg-transparent text-sm font-bold px-2 py-1 outline-none text-indigo-600">
+                <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200 w-full md:w-auto">
+                    <select id="pageSize" onchange="toggleManualSize()" class="bg-transparent text-sm font-bold px-2 py-1 outline-none text-indigo-600 flex-grow md:flex-grow-0">
                         <option value="original">Mantener Original</option>
-                        <option value="letter">Tamaño Carta (Letter)</option>
-                        <option value="legal">Tamaño Oficio (Legal)</option>
+                        <option value="letter">Carta (Letter)</option>
+                        <option value="legal">Oficio (Legal)</option>
                         <option value="manual">Personalizado (mm)</option>
                     </select>
                     <div id="manualInputs" class="hidden flex items-center gap-1 border-l border-slate-300 pl-2">
-                        <input type="number" id="manualW" placeholder="Ancho" class="w-16 text-xs p-1.5 border rounded">
-                        <input type="number" id="manualH" placeholder="Alto" class="w-16 text-xs p-1.5 border rounded">
+                        <input type="number" id="manualW" placeholder="W" class="w-12 text-xs p-1.5 border rounded">
+                        <input type="number" id="manualH" placeholder="H" class="w-12 text-xs p-1.5 border rounded">
                     </div>
                 </div>
             </div>
         </section>
 
-        <div id="dropzone" class="bg-white border-2 border-dashed border-indigo-200 rounded-2xl p-12 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/50 transition-all mb-8 group shadow-sm">
+        <div id="dropzone" class="bg-white border-2 border-dashed border-indigo-200 rounded-2xl p-8 md:p-12 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/50 transition-all mb-6 md:mb-8 group shadow-sm">
             <input type="file" id="fileInput" multiple accept=".pdf,image/*" class="hidden" onchange="handleFiles(this.files)">
-            <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform"><i class="fas fa-plus text-indigo-600 text-xl"></i></div>
-            <h3 class="text-lg font-bold text-slate-700">2. Sube tus archivos aquí</h3>
-            <p class="text-slate-400 text-sm">Arrastra PDFs o Imágenes</p>
+            <div class="w-14 h-14 md:w-16 md:h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform"><i class="fas fa-plus text-indigo-600 text-lg md:text-xl"></i></div>
+            <h3 class="text-base md:text-lg font-bold text-slate-700">2. Sube tus archivos aquí</h3>
+            <p class="text-slate-400 text-xs md:text-sm">Arrastra PDFs o Imágenes</p>
         </div>
 
-        <div id="editorContainer" class="hidden border-t border-slate-200 pt-8">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-lg font-bold text-slate-800">3. Organiza y Edita</h2>
-                <button onclick="clearAll()" class="text-rose-600 text-[10px] font-bold border border-rose-200 px-3 py-2 rounded-lg hover:bg-rose-50 uppercase tracking-tighter transition-all">Limpiar Todo</button>
-            </div>
-            
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-8 space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase">Nombre base del archivo</label>
-                        <input type="text" id="outputFileName" placeholder="Ej: Factura_Venta" class="px-3 py-2.5 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500 w-full">
+        <div id="modeSelector" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <button onclick="setAppMode('merge')" id="btnModeMerge" class="mode-card p-5 bg-white border border-slate-200 rounded-2xl text-left shadow-sm relative overflow-hidden group">
+                <div class="check-icon hidden absolute top-2 right-2 w-5 h-5 bg-indigo-600 text-white rounded-full items-center justify-center text-[10px]"><i class="fas fa-check"></i></div>
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-100"><i class="fas fa-layer-group"></i></div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm">Unir en un solo PDF</h4>
+                        <p class="text-[11px] text-slate-400">Todo en un único archivo final.</p>
                     </div>
+                </div>
+            </button>
+            <button onclick="setAppMode('split')" id="btnModeSplit" class="mode-card p-5 bg-white border border-slate-200 rounded-2xl text-left shadow-sm relative overflow-hidden group">
+                <div class="check-icon hidden absolute top-2 right-2 w-5 h-5 bg-indigo-600 text-white rounded-full items-center justify-center text-[10px]"><i class="fas fa-check"></i></div>
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-100"><i class="fas fa-columns"></i></div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm">Separar por grupos</h4>
+                        <p class="text-[11px] text-slate-400">Dividir en múltiples archivos.</p>
+                    </div>
+                </div>
+            </button>
+        </div>
+
+        <div id="editorContainer" class="hidden border-t border-slate-200 pt-6 md:pt-8">
+            
+            <div id="splitOptions" class="hidden bg-white p-5 md:p-6 rounded-2xl border border-indigo-200 shadow-md mb-6 md:mb-8 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="flex flex-col gap-1">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase">Diseño de enumeración (# es el número)</label>
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Nombre base</label>
+                        <input type="text" id="outputFileNameEditor" placeholder="Ej: Factura" class="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="flex flex-col gap-1 md:col-span-2">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Configurar Enumeración (# es el número)</label>
                         <div class="flex gap-2">
-                            <input type="text" id="enumFormat" value="-pg #" class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500 flex-1" placeholder="Ej: (#)">
+                            <input type="text" id="enumFormat" value="-pg #" class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
                             <select id="enumPosition" class="bg-slate-50 border border-slate-300 rounded-lg text-xs px-2 font-bold outline-none">
                                 <option value="end">Al Final</option>
                                 <option value="start">Al Inicio</option>
@@ -91,35 +127,40 @@
                     </div>
                 </div>
                 
-                <div class="flex items-center justify-between pt-4 border-t border-slate-100">
-                    <p class="text-[11px] text-slate-400 italic">Ejemplo: <span id="nameExample" class="font-bold text-indigo-500">Factura_Venta-pg 1.pdf</span></p>
-                    <button onclick="splitByRange()" class="bg-slate-800 hover:bg-black text-white px-8 py-3 rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg transition-all transform hover:-translate-y-0.5">
-                        <i class="fas fa-columns"></i> Separar por Grupos
+                <div class="flex flex-col md:flex-row items-center md:justify-between pt-4 border-t border-slate-100 gap-3">
+                    <p class="text-[10px] text-slate-400 italic">Previsualización: <span id="nameExample" class="font-bold text-indigo-500">Factura-pg 1.pdf</span></p>
+                    <button onclick="splitByRange()" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all transform hover:-translate-y-0.5">
+                        <i class="fas fa-download"></i> Descargar Grupos
                     </button>
                 </div>
             </div>
 
-            <div id="pagesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 mb-20"></div>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-lg font-bold text-slate-800">3. Organizar páginas</h2>
+                <button onclick="clearAll()" class="text-rose-600 text-[10px] font-bold border border-rose-200 px-3 py-2 rounded-lg hover:bg-rose-50 uppercase transition-all">Limpiar</button>
+            </div>
+            
+            <div id="pagesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 mb-20"></div>
         </div>
     </main>
 
     <div id="previewModal" class="fixed inset-0 bg-slate-900/98 z-[100] p-4 flex flex-col items-center justify-center backdrop-blur-sm">
         <div class="w-full max-w-5xl flex justify-between items-center mb-4 text-white">
-            <div class="flex gap-2">
-                <button onclick="zoomIn()" class="bg-slate-800 p-2.5 rounded-lg hover:bg-slate-700"><i class="fas fa-search-plus"></i></button>
-                <button onclick="zoomOut()" class="bg-slate-800 p-2.5 rounded-lg hover:bg-slate-700"><i class="fas fa-search-minus"></i></button>
-                <button onclick="startCrop()" id="cropBtn" class="bg-indigo-600 px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2"><i class="fas fa-crop"></i> Recortar</button>
-                <button onclick="confirmCrop()" id="confirmCropBtn" class="bg-emerald-600 px-5 py-2.5 rounded-lg text-sm font-bold hidden">Confirmar</button>
-                <button onclick="cancelCrop()" id="cancelCropBtn" class="bg-rose-600 px-5 py-2.5 rounded-lg text-sm font-bold hidden">Cancelar</button>
+            <div class="flex gap-1.5 md:gap-2">
+                <button onclick="zoomIn()" class="bg-slate-800 p-2 md:p-2.5 rounded-lg hover:bg-slate-700"><i class="fas fa-search-plus text-sm md:text-base"></i></button>
+                <button onclick="zoomOut()" class="bg-slate-800 p-2 md:p-2.5 rounded-lg hover:bg-slate-700"><i class="fas fa-search-minus text-sm md:text-base"></i></button>
+                <button onclick="startCrop()" id="cropBtn" class="bg-indigo-600 px-3 md:px-5 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 md:gap-2"><i class="fas fa-crop"></i> Recortar</button>
+                <button onclick="confirmCrop()" id="confirmCropBtn" class="bg-emerald-600 px-3 md:px-5 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-bold hidden">Confirmar</button>
+                <button onclick="cancelCrop()" id="cancelCropBtn" class="bg-rose-600 px-3 md:px-5 py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-bold hidden">Cancelar</button>
             </div>
-            <button onclick="closePreview()" class="text-slate-400 hover:text-white text-4xl">&times;</button>
+            <button onclick="closePreview()" class="text-slate-400 hover:text-white text-3xl md:text-4xl leading-none">&times;</button>
         </div>
         <div id="modalImageContainer"><img id="modalImg" src=""></div>
         <div id="cropperContainer" class="rounded-xl overflow-hidden shadow-2xl"><img id="cropperImg" src=""></div>
     </div>
 
     <div id="loader" class="hidden fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[200] backdrop-blur-sm">
-        <div class="bg-white p-8 rounded-2xl flex flex-col items-center shadow-2xl">
+        <div class="bg-white p-8 rounded-2xl flex flex-col items-center shadow-2xl text-center">
             <div class="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mb-4"></div>
             <p class="text-sm font-bold text-slate-800">Procesando...</p>
         </div>
@@ -129,23 +170,55 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
         let allPages = []; let cropper = null; let currentEditingPageId = null; let currentZoom = 1;
+        let currentMode = 'merge';
+
         const pagesGrid = document.getElementById('pagesGrid');
         const loader = document.getElementById('loader');
 
-        new Sortable(pagesGrid, { animation: 150, ghostClass: 'sortable-ghost' });
+        new Sortable(pagesGrid, { animation: 150, ghostClass: 'sortable-ghost', delay: 50, delayOnTouchOnly: true });
         document.getElementById('dropzone').onclick = () => document.getElementById('fileInput').click();
 
-        // Actualizar ejemplo visual en tiempo real
-        const inputs = ['outputFileName', 'enumFormat', 'enumPosition'];
-        inputs.forEach(id => {
-            document.getElementById(id).addEventListener('input', () => {
-                const name = document.getElementById('outputFileName').value || "Nombre";
-                const pattern = document.getElementById('enumFormat').value || "#";
-                const pos = document.getElementById('enumPosition').value;
-                const formatted = pattern.replace('#', '1');
-                document.getElementById('nameExample').innerText = pos === 'end' ? `${name}${formatted}.pdf` : `${formatted}${name}.pdf`;
+        function setAppMode(mode) {
+            currentMode = mode;
+            const splitOptions = document.getElementById('splitOptions');
+            const navSaveBtn = document.getElementById('navSaveBtn');
+            const btnMerge = document.getElementById('btnModeMerge');
+            const btnSplit = document.getElementById('btnModeSplit');
+
+            if (mode === 'split') {
+                splitOptions.classList.remove('hidden');
+                navSaveBtn.classList.add('hidden');
+                btnSplit.classList.add('mode-active');
+                btnMerge.classList.remove('mode-active');
+            } else {
+                splitOptions.classList.add('hidden');
+                navSaveBtn.classList.remove('hidden');
+                btnMerge.classList.add('mode-active');
+                btnSplit.classList.remove('mode-active');
+            }
+            updateExample();
+        }
+
+        const nameNav = document.getElementById('outputFileName');
+        const nameEditor = document.getElementById('outputFileNameEditor');
+        [nameNav, nameEditor].forEach(input => {
+            input.addEventListener('input', (e) => {
+                nameNav.value = e.target.value;
+                nameEditor.value = e.target.value;
+                updateExample();
             });
         });
+
+        const inputsForExample = ['outputFileNameEditor', 'enumFormat', 'enumPosition'];
+        inputsForExample.forEach(id => document.getElementById(id).addEventListener('input', updateExample));
+
+        function updateExample() {
+            const name = nameEditor.value || "Nombre";
+            const pattern = document.getElementById('enumFormat').value || "#";
+            const pos = document.getElementById('enumPosition').value;
+            const formatted = pattern.replace('#', '1');
+            document.getElementById('nameExample').innerText = pos === 'end' ? `${name}${formatted}.pdf` : `${formatted}${name}.pdf`;
+        }
 
         function toggleManualSize() {
             const val = document.getElementById('pageSize').value;
@@ -155,7 +228,10 @@
         async function handleFiles(files) {
             if (files.length === 0) return;
             loader.classList.remove('hidden');
+            document.getElementById('modeSelector').classList.remove('hidden');
             document.getElementById('editorContainer').classList.remove('hidden');
+            setAppMode('merge'); 
+
             for (const file of files) {
                 const cleanName = file.name.replace(/\.[^/.]+$/, "");
                 if (file.type === "application/pdf") {
@@ -183,15 +259,15 @@
             const pageId = Math.random().toString(36).substr(2, 9);
             allPages.push({ id: pageId, originalData, originalIndex, currentData: displayData, originalCrop: displayData, type, originalName });
             const div = document.createElement('div');
-            div.className = 'page-card group relative bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:shadow-md transition-all';
+            div.className = 'page-card group relative bg-white border border-slate-200 rounded-xl p-2 shadow-sm hover:shadow-md transition-all';
             div.dataset.id = pageId;
             div.innerHTML = `
                 <div class="page-number absolute -top-2 -left-2 bg-indigo-600 text-white w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold z-10 shadow-lg border-2 border-white"></div>
-                <img src="${displayData}" class="w-full h-40 object-contain bg-slate-50 rounded-lg cursor-pointer transition-all group-hover:brightness-95" onclick="openPreview('${pageId}')">
-                <div class="action-btns opacity-0 absolute top-4 right-4 flex flex-col gap-2 transition-opacity z-20">
-                    <button onclick="event.stopPropagation(); deletePage('${pageId}')" class="w-8 h-8 bg-white text-rose-500 rounded-lg shadow-lg flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all border border-slate-100"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                <img src="${displayData}" class="w-full h-36 md:h-40 object-contain bg-slate-50 rounded-lg cursor-pointer" onclick="openPreview('${pageId}')">
+                <div class="action-btns absolute top-2 right-2 z-20">
+                    <button onclick="event.stopPropagation(); deletePage('${pageId}')" class="w-8 h-8 bg-white text-rose-500 rounded-full shadow-lg flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all border border-slate-100"><i class="fas fa-trash-alt text-xs"></i></button>
                 </div>
-                <p class="text-[9px] text-slate-400 mt-2 truncate text-center font-bold tracking-tight uppercase">${originalName}</p>
+                <p class="text-[9px] text-slate-400 mt-2 truncate text-center font-bold uppercase tracking-tight">${originalName}</p>
             `;
             pagesGrid.appendChild(div);
         }
@@ -202,7 +278,7 @@
             const size = parseInt(prompt("¿Cada cuántas páginas quieres separar?", "1"));
             if (isNaN(size) || size <= 0) return;
             
-            const baseName = document.getElementById('outputFileName').value.trim() || "documento";
+            const baseName = nameEditor.value.trim() || "documento";
             const enumPattern = document.getElementById('enumFormat').value || "#";
             const enumPos = document.getElementById('enumPosition').value;
             
@@ -211,8 +287,7 @@
                 const chunk = items.slice(i, i + size);
                 const subPdf = await PDFLib.PDFDocument.create();
                 for (const item of chunk) {
-                    const pageId = item.dataset.id;
-                    const pageObj = allPages.find(p => p.id === pageId);
+                    const pageObj = allPages.find(p => p.id === item.dataset.id);
                     const imgRes = await fetch(pageObj.currentData);
                     const imgBytes = await imgRes.arrayBuffer();
                     const img = pageObj.currentData.includes("png") ? await subPdf.embedPng(imgBytes) : await subPdf.embedJpg(imgBytes);
@@ -231,7 +306,7 @@
         async function exportPDF() {
             const items = Array.from(pagesGrid.children);
             if (items.length === 0) return;
-            const fileName = document.getElementById('outputFileName').value.trim() || "documento_final";
+            const fileName = nameNav.value.trim() || "documento_final";
             loader.classList.remove('hidden');
             try {
                 const mergedPdf = await PDFLib.PDFDocument.create();
@@ -246,10 +321,8 @@
                 }
 
                 for (const item of items) {
-                    const pageId = item.dataset.id;
-                    const pageObj = allPages.find(p => p.id === pageId);
+                    const pageObj = allPages.find(p => p.id === item.dataset.id);
                     let newPage;
-                    if (targetSize) newPage = mergedPdf.addPage(targetSize);
                     const imgRes = await fetch(pageObj.currentData);
                     const imgBytes = await imgRes.arrayBuffer();
                     const img = pageObj.currentData.includes("png") ? await mergedPdf.embedPng(imgBytes) : await mergedPdf.embedJpg(imgBytes);
@@ -258,20 +331,19 @@
                         newPage = mergedPdf.addPage([img.width, img.height]);
                         newPage.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
                     } else {
+                        newPage = mergedPdf.addPage(targetSize);
                         const scale = Math.min(targetSize[0] / img.width, targetSize[1] / img.height) * 0.95;
                         const dWidth = img.width * scale;
                         const dHeight = img.height * scale;
                         newPage.drawImage(img, {
-                            x: (targetSize[0] - dWidth) / 2,
-                            y: (targetSize[1] - dHeight) / 2,
-                            width: dWidth,
-                            height: dHeight
+                            x: (targetSize[0] - dWidth) / 2, y: (targetSize[1] - dHeight) / 2,
+                            width: dWidth, height: dHeight
                         });
                     }
                 }
                 const pdfBytes = await mergedPdf.save();
                 downloadBlob(pdfBytes, `${fileName}.pdf`);
-            } catch (e) { alert("Error"); }
+            } catch (e) { console.error(e); }
             loader.classList.add('hidden');
         }
 
