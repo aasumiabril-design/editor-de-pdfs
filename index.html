@@ -160,8 +160,8 @@
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
                 <h2 class="text-sm font-bold text-slate-800 uppercase tracking-tight">Ordena y Edita</h2>
                 <div class="flex gap-2">
-                    <button onclick="openFullViewer()" class="bg-indigo-100 text-indigo-700 text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2"><i class="fas fa-desktop"></i> Visor Chrome</button>
-                    <button onclick="clearAll()" class="text-rose-600 text-xs font-bold border border-rose-200 px-4 py-2 rounded-lg">Limpiar Todo</button>
+                    <button onclick="openFullViewer()" class="bg-indigo-100 text-indigo-700 text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-200 transition-colors"><i class="fas fa-desktop"></i> Visor Chrome</button>
+                    <button onclick="clearAll()" class="bg-rose-50 text-rose-600 text-xs font-bold border border-rose-200 px-4 py-2 rounded-lg hover:bg-rose-100 transition-colors">Limpiar Todo</button>
                 </div>
             </div>
             
@@ -173,13 +173,16 @@
     <div id="previewModal" class="fixed inset-0 bg-slate-900/98 z-[100] p-4 flex flex-col items-center justify-center backdrop-blur-sm">
         <div class="w-full max-w-5xl flex justify-between items-center mb-4 text-white">
             <div class="flex gap-2">
-                <button onclick="zoomIn()" class="bg-slate-800 p-2 rounded-lg"><i class="fas fa-search-plus"></i></button>
-                <button onclick="zoomOut()" class="bg-slate-800 p-2 rounded-lg"><i class="fas fa-search-minus"></i></button>
-                <button onclick="startCrop()" id="cropBtn" class="bg-indigo-600 px-4 py-2 rounded-lg text-xs font-bold">Recortar</button>
-                <button onclick="confirmCrop()" id="confirmCropBtn" class="bg-emerald-600 px-4 py-2 rounded-lg text-xs font-bold hidden">OK</button>
-                <button onclick="cancelCrop()" id="cancelCropBtn" class="bg-rose-600 px-4 py-2 rounded-lg text-xs font-bold hidden">X</button>
+                <button onclick="zoomIn()" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg transition-colors"><i class="fas fa-search-plus"></i></button>
+                <button onclick="zoomOut()" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg transition-colors"><i class="fas fa-search-minus"></i></button>
+                <button onclick="startCrop()" id="cropBtn" class="bg-indigo-600 hover:bg-indigo-500 px-5 py-3 rounded-lg text-xs font-bold transition-colors">Recortar</button>
+                <button onclick="confirmCrop()" id="confirmCropBtn" class="bg-emerald-600 hover:bg-emerald-500 px-5 py-3 rounded-lg text-xs font-bold hidden transition-colors">Confirmar (OK)</button>
+                <button onclick="cancelCrop()" id="cancelCropBtn" class="bg-rose-600 hover:bg-rose-500 px-5 py-3 rounded-lg text-xs font-bold hidden transition-colors">Cancelar (X)</button>
             </div>
-            <button onclick="closePreview()" class="text-white text-3xl">&times;</button>
+            <!-- X MODIFICADA PARA SER MUCHO MÁS VISIBLE -->
+            <button onclick="closePreview()" class="w-10 h-10 bg-slate-800 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-xl transition-colors shadow-lg">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
         <div id="modalImageContainer"><img id="modalImg" src=""></div>
         <div id="cropperContainer" class="rounded-xl overflow-hidden hidden"><img id="cropperImg" src=""></div>
@@ -379,14 +382,16 @@
             const div = document.createElement('div');
             div.className = 'page-card group relative bg-white border border-slate-200 rounded-xl p-2 shadow-sm flex flex-col justify-between';
             div.dataset.id = pageId;
+            
+            // BOTONES DE ACCIÓN MODIFICADOS PARA DESTACAR CON COLORES SÓLIDOS
             div.innerHTML = `
                 <div class="page-number absolute -top-2 -left-2 bg-indigo-600 text-white w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold z-10 border-2 border-white shadow"></div>
                 <div class="relative w-full h-32 md:h-40 flex items-center justify-center bg-slate-100 rounded-lg overflow-hidden cursor-pointer" onclick="openPreview('${pageId}')">
                     <img src="${displayData}" class="thumbnail-img object-contain w-full h-full">
                 </div>
-                <div class="action-btns absolute top-1 right-1 z-20 flex flex-col gap-1">
-                    <button onclick="rotatePageImage(event, '${pageId}')" class="w-8 h-8 bg-white text-indigo-500 rounded-full shadow-md flex items-center justify-center border border-slate-100 hover:bg-indigo-50"><i class="fas fa-undo-alt text-xs"></i></button>
-                    <button onclick="event.stopPropagation(); deletePage('${pageId}')" class="w-8 h-8 bg-white text-rose-500 rounded-full shadow-md flex items-center justify-center border border-slate-100 hover:bg-rose-50"><i class="fas fa-trash-alt text-xs"></i></button>
+                <div class="action-btns absolute top-3 right-3 z-20 flex flex-col gap-2">
+                    <button onclick="rotatePageImage(event, '${pageId}')" class="w-8 h-8 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 transition-colors"><i class="fas fa-undo-alt text-xs"></i></button>
+                    <button onclick="event.stopPropagation(); deletePage('${pageId}')" class="w-8 h-8 bg-rose-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-rose-700 transition-colors"><i class="fas fa-trash-alt text-xs"></i></button>
                 </div>
                 <p class="text-[9px] text-slate-500 mt-2 truncate text-center font-semibold px-1">${originalName}</p>
             `;
