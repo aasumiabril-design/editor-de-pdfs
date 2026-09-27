@@ -29,7 +29,6 @@
         .mode-active { border-color: #6366f1 !important; background-color: #f5f7ff !important; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.1); transform: translateY(-2px); }
         .mode-active .check-icon { display: flex !important; }
         
-        /* Estilos del visor Chrome-like */
         #viewerMainArea::-webkit-scrollbar, #viewerSidebar::-webkit-scrollbar { width: 8px; height: 8px; }
         #viewerMainArea::-webkit-scrollbar-thumb, #viewerSidebar::-webkit-scrollbar-thumb { background: #5f6368; border-radius: 4px; }
         #viewerMainArea::-webkit-scrollbar-track, #viewerSidebar::-webkit-scrollbar-track { background: transparent; }
@@ -60,7 +59,6 @@
     <main class="max-w-5xl mx-auto px-4 md:px-6 py-6 md:py-10">
         
         <section class="mb-6 md:mb-8 bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-            <!-- Bloque 1: Dimensiones y Márgenes -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Formato de Salida</h2>
@@ -87,7 +85,6 @@
                 </div>
             </div>
             
-            <!-- Bloque 2: Nuevas Configuraciones (Calidad y Marca de agua) -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
                 <div>
                     <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Calidad (Compresión)</h2>
@@ -160,7 +157,8 @@
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
                 <h2 class="text-sm font-bold text-slate-800 uppercase tracking-tight">Ordena y Edita</h2>
                 <div class="flex gap-2">
-                    <button onclick="openFullViewer()" class="bg-indigo-100 text-indigo-700 text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-200 transition-colors"><i class="fas fa-desktop"></i> Visor Chrome</button>
+                    <!-- CAMBIO DE NOMBRE AQUÍ -->
+                    <button onclick="openFullViewer()" class="bg-indigo-100 text-indigo-700 text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-indigo-200 transition-colors"><i class="fas fa-desktop"></i> Visor Avanzado</button>
                     <button onclick="clearAll()" class="bg-rose-50 text-rose-600 text-xs font-bold border border-rose-200 px-4 py-2 rounded-lg hover:bg-rose-100 transition-colors">Limpiar Todo</button>
                 </div>
             </div>
@@ -169,7 +167,7 @@
         </div>
     </main>
 
-    <!-- Modal Recorte Individual (Anterior) -->
+    <!-- Modal Recorte Individual -->
     <div id="previewModal" class="fixed inset-0 bg-slate-900/98 z-[100] p-4 flex flex-col items-center justify-center backdrop-blur-sm">
         <div class="w-full max-w-5xl flex justify-between items-center mb-4 text-white">
             <div class="flex gap-2">
@@ -179,7 +177,6 @@
                 <button onclick="confirmCrop()" id="confirmCropBtn" class="bg-emerald-600 hover:bg-emerald-500 px-5 py-3 rounded-lg text-xs font-bold hidden transition-colors">Confirmar (OK)</button>
                 <button onclick="cancelCrop()" id="cancelCropBtn" class="bg-rose-600 hover:bg-rose-500 px-5 py-3 rounded-lg text-xs font-bold hidden transition-colors">Cancelar (X)</button>
             </div>
-            <!-- X MODIFICADA PARA SER MUCHO MÁS VISIBLE -->
             <button onclick="closePreview()" class="w-10 h-10 bg-slate-800 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-xl transition-colors shadow-lg">
                 <i class="fas fa-times"></i>
             </button>
@@ -188,9 +185,8 @@
         <div id="cropperContainer" class="rounded-xl overflow-hidden hidden"><img id="cropperImg" src=""></div>
     </div>
 
-    <!-- NUEVO: Modal Visor Estilo Chrome -->
+    <!-- Modal Visor Avanzado -->
     <div id="fullViewerModal" class="hidden fixed inset-0 bg-[#323639] z-[150] flex flex-col">
-        <!-- Topbar -->
         <div class="h-14 bg-[#323639] border-b border-gray-600 flex justify-between items-center px-4 text-white select-none">
             <div class="flex items-center gap-4">
                 <button onclick="closeFullViewer()" class="text-gray-300 hover:text-white hover:bg-gray-700 p-2 rounded-full transition"><i class="fas fa-arrow-left"></i></button>
@@ -209,18 +205,14 @@
                 <button onclick="exportPDF()" class="hover:bg-gray-700 p-2 rounded-full transition" title="Descargar"><i class="fas fa-download"></i></button>
             </div>
         </div>
-        <!-- Contenido Visor -->
         <div class="flex flex-1 overflow-hidden">
-            <!-- Sidebar (Miniaturas) -->
             <div class="w-24 md:w-56 bg-[#202124] overflow-y-auto flex flex-col items-center py-4 gap-6" id="viewerSidebar"></div>
-            <!-- Area Principal -->
             <div class="flex-1 bg-[#525659] overflow-auto flex justify-center items-start p-4 md:p-8 relative" id="viewerMainArea">
                 <img id="viewerMainImg" src="" class="shadow-2xl transition-transform ease-out duration-100 origin-top" style="max-width: 100%; width: auto;">
             </div>
         </div>
     </div>
 
-    <!-- Iframe invisible para impresiones -->
     <iframe id="printFrame" class="hidden"></iframe>
 
     <div id="loader" class="hidden fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[200]">
@@ -235,12 +227,41 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
         let allPages = []; let cropper = null; let currentEditingPageId = null; let currentZoom = 1;
         let viewerZoom = 1; let currentMode = 'merge';
+        let isModalOpen = false; // <-- Nueva variable para controlar el estado de navegación
 
         const pagesGrid = document.getElementById('pagesGrid');
         const loader = document.getElementById('loader');
 
         new Sortable(pagesGrid, { animation: 150, ghostClass: 'sortable-ghost', delay: 50, delayOnTouchOnly: true });
         document.getElementById('dropzone').onclick = () => document.getElementById('fileInput').click();
+
+        // --------------------------------------------------------------------------
+        // NUEVAS FUNCIONES PARA NAVEGACIÓN (Botón Atrás y Tecla ESC)
+        // --------------------------------------------------------------------------
+        
+        // Atrapa el evento del botón "Atrás" del navegador/celular
+        window.addEventListener('popstate', () => {
+            if (isModalOpen) {
+                // Si había un modal abierto, lo cerramos en lugar de salir de la página
+                cancelCrop();
+                document.getElementById('previewModal').style.display = 'none';
+                document.getElementById('fullViewerModal').classList.add('hidden');
+                isModalOpen = false;
+            }
+        });
+
+        // Atrapa el evento de la tecla "Escape" (Esc) del teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (document.getElementById('previewModal').style.display === 'flex') {
+                    closePreview();
+                } else if (!document.getElementById('fullViewerModal').classList.contains('hidden')) {
+                    closeFullViewer();
+                }
+            }
+        });
+        // --------------------------------------------------------------------------
+
 
         function dataUriToUint8Array(dataUri) {
             const parts = dataUri.split(',');
@@ -252,7 +273,6 @@
             return { u8arr, mime };
         }
 
-        // --- Compresión de Imágenes en tiempo real ---
         async function getCompressedData(dataUri, qualityStr) {
             const quality = parseFloat(qualityStr);
             if (quality >= 0.95 || dataUri.includes("image/png")) return dataUri;
@@ -269,14 +289,13 @@
             });
         }
 
-        // --- Rotación Permanente vía Canvas ---
         function rotatePageImage(event, pageId) {
             event.stopPropagation();
             const pageObj = allPages.find(p => p.id === pageId);
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                canvas.width = img.height; canvas.height = img.width; // Intercambiar W/H
+                canvas.width = img.height; canvas.height = img.width; 
                 const ctx = canvas.getContext('2d');
                 ctx.translate(canvas.width/2, canvas.height/2);
                 ctx.rotate(90 * Math.PI / 180);
@@ -284,10 +303,9 @@
                 const newData = canvas.toDataURL('image/jpeg', 0.95);
                 
                 pageObj.currentData = newData;
-                pageObj.originalCrop = newData; // Para resetear recortes
+                pageObj.originalCrop = newData; 
                 document.querySelector(`[data-id="${pageId}"] .thumbnail-img`).src = newData;
                 
-                // Si el visor está abierto, actualizarlo
                 if(!document.getElementById('fullViewerModal').classList.contains('hidden') && currentEditingPageId === pageId) {
                     document.getElementById('viewerMainImg').src = newData;
                     document.getElementById(`thumb-${pageId}`).src = newData;
@@ -383,7 +401,6 @@
             div.className = 'page-card group relative bg-white border border-slate-200 rounded-xl p-2 shadow-sm flex flex-col justify-between';
             div.dataset.id = pageId;
             
-            // BOTONES DE ACCIÓN MODIFICADOS PARA DESTACAR CON COLORES SÓLIDOS
             div.innerHTML = `
                 <div class="page-number absolute -top-2 -left-2 bg-indigo-600 text-white w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold z-10 border-2 border-white shadow"></div>
                 <div class="relative w-full h-32 md:h-40 flex items-center justify-center bg-slate-100 rounded-lg overflow-hidden cursor-pointer" onclick="openPreview('${pageId}')">
@@ -398,7 +415,6 @@
             pagesGrid.appendChild(div);
         }
 
-        // --- Lógica del Generador Común (Reutilizable para Guardar e Imprimir) ---
         async function buildFinalPDF() {
             const items = Array.from(pagesGrid.children);
             if (items.length === 0) return null;
@@ -526,14 +542,30 @@
             URL.revokeObjectURL(url);
         }
 
-        // --- Lógica Modal Recorte Básico ---
+        // --- Lógica Modal Recorte Básico (Actualizada para Historial) ---
         function openPreview(pageId) {
             const pageObj = allPages.find(p => p.id === pageId);
             currentEditingPageId = pageId; currentZoom = 1;
             document.getElementById('modalImg').src = pageObj.currentData;
             document.getElementById('modalImg').style.transform = `scale(1)`;
             document.getElementById('previewModal').style.display = 'flex';
+            
+            // Empujamos un estado falso al historial del navegador
+            history.pushState({ modalOpen: true }, '');
+            isModalOpen = true;
         }
+
+        function closePreview() {
+            if (isModalOpen) {
+                // Si presionamos X o Esc, simulamos ir hacia atrás en el navegador
+                // Esto activará el evento "popstate" que tenemos arriba, el cual esconderá todo.
+                history.back(); 
+            } else {
+                cancelCrop();
+                document.getElementById('previewModal').style.display = 'none';
+            }
+        }
+
         function startCrop() {
             const pageObj = allPages.find(p => p.id === currentEditingPageId);
             document.getElementById('modalImageContainer').style.display = 'none';
@@ -565,15 +597,14 @@
         function zoomIn() { currentZoom += 0.3; updateZoom(); }
         function zoomOut() { currentZoom = Math.max(0.4, currentZoom - 0.3); updateZoom(); }
         function updateZoom() { const img = document.getElementById('modalImg'); img.style.transform = `scale(${currentZoom})`; img.style.maxWidth = currentZoom > 1 ? 'none' : '100%'; }
-        function closePreview() { cancelCrop(); document.getElementById('previewModal').style.display = 'none'; }
         
-        // --- NUEVO: Lógica del Visor Estilo Chrome ---
+        // --- Lógica del Visor Avanzado (Actualizada para Historial) ---
         function openFullViewer() {
             const items = Array.from(pagesGrid.children);
             if (items.length === 0) return;
             
             const sidebar = document.getElementById('viewerSidebar');
-            sidebar.innerHTML = ''; // Limpiar
+            sidebar.innerHTML = '';
             viewerZoom = 1; updateViewerZoom();
             
             document.getElementById('viewerTitle').innerText = nameNav.value || "Documento.pdf";
@@ -585,17 +616,20 @@
                 thumbDiv.className = 'w-16 h-20 md:w-36 md:h-44 bg-white flex items-center justify-center cursor-pointer border border-transparent transition-all shadow-md relative';
                 thumbDiv.onclick = () => selectViewerPage(pageObj.id, thumbDiv, index + 1);
                 
-                // Indicador de numero
                 thumbDiv.innerHTML = `
                     <img id="thumb-${pageObj.id}" src="${pageObj.currentData}" class="object-contain w-full h-full p-1">
                     <div class="absolute -bottom-5 text-gray-400 text-[10px] md:text-xs text-center w-full">${index + 1}</div>
                 `;
                 sidebar.appendChild(thumbDiv);
                 
-                if (index === 0) selectViewerPage(pageObj.id, thumbDiv, 1); // Auto-seleccionar el primero
+                if (index === 0) selectViewerPage(pageObj.id, thumbDiv, 1);
             });
             
             document.getElementById('fullViewerModal').classList.remove('hidden');
+            
+            // Empujamos un estado falso al historial del navegador
+            history.pushState({ modalOpen: true }, '');
+            isModalOpen = true;
         }
 
         function selectViewerPage(pageId, element, pageNumber) {
@@ -603,11 +637,9 @@
             document.getElementById('viewerMainImg').src = allPages.find(p => p.id === pageId).currentData;
             document.getElementById('viewerCurrentPage').innerText = pageNumber;
             
-            // Estilos activo
             document.querySelectorAll('#viewerSidebar > div').forEach(el => el.classList.remove('thumb-active'));
             element.classList.add('thumb-active');
             
-            // Auto scroll sidebar si es necesario
             element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
@@ -617,7 +649,15 @@
             document.getElementById('viewerMainImg').style.transform = `scale(${viewerZoom})`;
             document.getElementById('viewerZoomLabel').innerText = `${Math.round(viewerZoom * 100)}%`;
         }
-        function closeFullViewer() { document.getElementById('fullViewerModal').classList.add('hidden'); }
+
+        function closeFullViewer() { 
+            if (isModalOpen) {
+                // Retroceder un paso en el historial ocultará el visor a través del evento "popstate"
+                history.back();
+            } else {
+                document.getElementById('fullViewerModal').classList.add('hidden'); 
+            }
+        }
 
         function deletePage(id) { document.querySelector(`[data-id="${id}"]`).remove(); }
         function clearAll() { if(confirm("¿Borrar todos los documentos?")) { location.reload(); } }
