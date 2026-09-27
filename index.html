@@ -3,19 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Editor Pro | Suite Completa</title>
+    <title>PDF Editor Pro | Adrian</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Librerías Core -->
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-    
     <!-- Tesseract para OCR -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -26,41 +23,140 @@
         }
         .sortable-ghost { opacity: 0.1; transform: scale(0.95); background: #6366f1; }
         #previewModal { display: none; }
-        #modalImageContainer { position: relative; display: flex; justify-content: center; overflow: hidden; width: 100%; max-height: 70vh; background: #0f172a; border-radius: 12px; }
-        #modalImg { transform-origin: top left; max-width: 100%; user-select: none; -webkit-user-drag: none; }
-        #drawCanvas { position: absolute; top: 0; left: 0; z-index: 10; cursor: crosshair; touch-action: none; pointer-events: none;}
-        #drawCanvas.active { pointer-events: auto; }
-        
+        #modalImageContainer { display: flex; justify-content: center; overflow: auto; width: 100%; max-height: 70vh; background: #0f172a; border-radius: 12px; }
+        #modalImg { transform-origin: top center; transition: transform 0.1s; max-width: 100%; }
         #pagesGrid { counter-reset: pdf-counter; }
         .page-number::before { counter-increment: pdf-counter; content: counter(pdf-counter); }
-        .mode-active { border-color: #6366f1 !important; background-color: #f5f7ff !important; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.1); }
+        .mode-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 2px solid transparent; }
+        .mode-active { border-color: #6366f1 !important; background-color: #f5f7ff !important; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.1); transform: translateY(-2px); }
+        .mode-active .check-icon { display: flex !important; }
         
         #viewerMainArea::-webkit-scrollbar, #viewerSidebar::-webkit-scrollbar { width: 8px; height: 8px; }
         #viewerMainArea::-webkit-scrollbar-thumb, #viewerSidebar::-webkit-scrollbar-thumb { background: #5f6368; border-radius: 4px; }
+        #viewerMainArea::-webkit-scrollbar-track, #viewerSidebar::-webkit-scrollbar-track { background: transparent; }
         .thumb-active { border: 2px solid #8ab4f8 !important; }
+        .drawing-mode-active { background-color: #4f46e5; color: white; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen">
 
-    <nav class="bg-white border-b border-slate-200 px-3 md:px-6 py-4 sticky top-0 z-40 shadow-sm flex justify-between items-center gap-2">
-        <div class="flex items-center gap-2 shrink-0">
-            <div class="bg-indigo-600 p-1.5 rounded-lg text-white"><i class="fas fa-magic text-lg"></i></div>
-            <h1 class="text-sm md:text-xl font-bold tracking-tight text-slate-800 hidden sm:block">PDF Editor <span class="text-indigo-600">Pro</span></h1>
-        </div>
-        <div class="flex items-center gap-2 flex-1 justify-end">
-            <input type="text" id="outputFileName" placeholder="Nombre (Opcional)" class="px-2 py-2 border border-slate-300 rounded-lg text-xs outline-none w-32 md:w-48">
-            <button onclick="exportPDF()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 md:px-5 py-2 rounded-lg font-bold text-xs md:text-sm shadow-md transition-all">Guardar PDF</button>
+    <nav class="bg-white border-b border-slate-200 px-3 md:px-6 py-4 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto flex justify-between items-center gap-2">
+            <div class="flex items-center gap-2 shrink-0">
+                <div class="bg-indigo-600 p-1.5 rounded-lg text-white"><i class="fas fa-magic text-lg"></i></div>
+                <h1 class="text-sm md:text-xl font-bold tracking-tight text-slate-800 hidden sm:block">PDF Editor <span class="text-indigo-600">Pro</span></h1>
+            </div>
+            
+            <div class="flex items-center gap-2 flex-1 justify-end">
+                <input type="text" id="outputFileName" placeholder="Nombre (Opcional)" class="px-2 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 outline-none w-32 md:w-48 transition-all">
+                <button onclick="printEditedPDF()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg font-bold text-xs md:text-sm shadow-sm transition-all shrink-0">
+                    <i class="fas fa-print"></i>
+                </button>
+                <button id="navSaveBtn" onclick="exportPDF()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 md:px-5 py-2 rounded-lg font-bold text-xs md:text-sm shadow-md transition-all shrink-0">
+                    Guardar PDF
+                </button>
+            </div>
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-10">
+    <main class="max-w-5xl mx-auto px-4 md:px-6 py-6 md:py-10">
+        
+        <section class="mb-6 md:mb-8 bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Formato de Salida</h2>
+                    <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                        <select id="pageSize" onchange="toggleManualSize()" class="bg-transparent text-sm font-bold px-2 py-1 outline-none text-indigo-600 w-full">
+                            <option value="original">Original</option>
+                            <option value="letter">Carta</option>
+                            <option value="legal">Oficio</option>
+                            <option value="manual">Personalizado</option>
+                        </select>
+                        <div id="manualInputs" class="hidden flex items-center gap-1 border-l border-slate-300 pl-2">
+                            <input type="number" id="manualW" placeholder="W" class="w-12 text-[10px] p-1.5 border rounded">
+                            <input type="number" id="manualH" placeholder="H" class="w-12 text-[10px] p-1.5 border rounded">
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Márgenes Globales</h2>
+                    <select id="pageMargin" class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm font-bold text-indigo-600 outline-none w-full">
+                        <option value="0">Sin margen</option>
+                        <option value="20">Normal (20px)</option>
+                        <option value="40">Ancho (40px)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                <div>
+                    <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Calidad (Compresión)</h2>
+                    <div class="flex items-center gap-3">
+                        <input type="range" id="qualitySlider" min="0.1" max="1.0" step="0.1" value="0.9" class="w-full accent-indigo-600" oninput="document.getElementById('qualityLabel').innerText = Math.round(this.value * 100) + '%'">
+                        <span id="qualityLabel" class="text-xs font-bold text-slate-500 w-10">90%</span>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Marca de Agua (Opcional)</h2>
+                    <input type="text" id="watermarkInput" placeholder="Ej: CONFIDENCIAL" class="w-full bg-slate-50 p-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                </div>
+            </div>
+        </section>
+
         <div id="dropzone" class="bg-white border-2 border-dashed border-indigo-200 rounded-2xl p-8 text-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/50 transition-all mb-6 md:mb-8 group shadow-sm">
             <input type="file" id="fileInput" multiple accept=".pdf,image/*" class="hidden" onchange="handleFiles(this.files)">
             <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-plus text-indigo-600 text-lg"></i></div>
             <h3 class="text-sm md:text-lg font-bold text-slate-700">Añadir archivos (PDF o Imágenes)</h3>
         </div>
 
+        <div id="modeSelector" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <button onclick="setAppMode('merge')" id="btnModeMerge" class="mode-card p-5 bg-white border border-slate-200 rounded-2xl text-left shadow-sm relative group">
+                <div class="check-icon hidden absolute top-2 right-2 w-5 h-5 bg-indigo-600 text-white rounded-full items-center justify-center text-[10px]"><i class="fas fa-check"></i></div>
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600"><i class="fas fa-layer-group"></i></div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm">Unir todo</h4>
+                        <p class="text-[10px] text-slate-400">Un solo documento final.</p>
+                    </div>
+                </div>
+            </button>
+            <button onclick="setAppMode('split')" id="btnModeSplit" class="mode-card p-5 bg-white border border-slate-200 rounded-2xl text-left shadow-sm relative group">
+                <div class="check-icon hidden absolute top-2 right-2 w-5 h-5 bg-indigo-600 text-white rounded-full items-center justify-center text-[10px]"><i class="fas fa-check"></i></div>
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600"><i class="fas fa-columns"></i></div>
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm">Separar grupos</h4>
+                        <p class="text-[10px] text-slate-400">Varios PDFs numerados.</p>
+                    </div>
+                </div>
+            </button>
+        </div>
+
         <div id="editorContainer" class="hidden border-t border-slate-200 pt-6">
+            
+            <div id="splitOptions" class="hidden bg-white p-5 rounded-2xl border border-indigo-200 shadow-md mb-8 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Nombre base</label>
+                        <input type="text" id="outputFileNameEditor" placeholder="Ej: Factura" class="px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="flex flex-col gap-1 md:col-span-2">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">Enumeración (#)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="enumFormat" value="-pg #" class="px-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
+                            <select id="enumPosition" class="bg-slate-50 border border-slate-300 rounded-lg text-xs px-2 font-bold outline-none">
+                                <option value="end">Final</option>
+                                <option value="start">Inicio</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col md:flex-row items-center justify-between pt-4 border-t border-slate-100 gap-3">
+                    <p class="text-[10px] text-slate-400 italic">Ejemplo: <span id="nameExample" class="font-bold text-indigo-500">...</span></p>
+                    <button onclick="splitByRange()" class="w-full md:w-auto bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg">Descargar Grupos</button>
+                </div>
+            </div>
+
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
                 <h2 class="text-sm font-bold text-slate-800 uppercase tracking-tight">Ordena y Edita</h2>
                 <div class="flex gap-2">
@@ -68,79 +164,74 @@
                     <button onclick="clearAll()" class="bg-rose-50 text-rose-600 text-xs font-bold border border-rose-200 px-4 py-2 rounded-lg hover:bg-rose-100 transition-colors">Limpiar Todo</button>
                 </div>
             </div>
+            
             <div id="pagesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-20"></div>
         </div>
     </main>
 
-    <!-- Modal Edición Individual (Recorte, Filtros, Firma, OCR) -->
+    <!-- Modal Recorte Individual -->
     <div id="previewModal" class="fixed inset-0 bg-slate-900/98 z-[100] p-4 flex flex-col items-center justify-center backdrop-blur-sm">
-        <div class="w-full max-w-6xl flex flex-wrap justify-between items-center mb-4 text-white gap-2">
-            <div class="flex flex-wrap gap-2 items-center bg-slate-800 p-2 rounded-lg">
-                <!-- Herramientas -->
-                <button onclick="startCrop()" id="cropBtn" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded text-xs font-bold transition" title="Recortar"><i class="fas fa-crop-alt mr-1"></i> Recortar</button>
-                <button onclick="applyFilter('bw')" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded text-xs font-bold transition" title="Filtro B/N"><i class="fas fa-adjust mr-1"></i> B/N</button>
-                <button onclick="applyFilter('contrast')" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded text-xs font-bold transition" title="Mejorar Contraste"><i class="fas fa-sun mr-1"></i> Contraste</button>
-                <div class="w-px h-6 bg-slate-600 mx-1"></div>
-                <button onclick="toggleDraw('signature')" id="btnSign" class="bg-slate-700 hover:bg-indigo-600 px-3 py-2 rounded text-xs font-bold transition" title="Firmar (Negro)"><i class="fas fa-pen-nib mr-1"></i> Firmar</button>
-                <button onclick="toggleDraw('highlight')" id="btnHighlight" class="bg-slate-700 hover:bg-yellow-600 px-3 py-2 rounded text-xs font-bold transition" title="Resaltar (Amarillo)"><i class="fas fa-highlighter mr-1"></i> Resaltar</button>
-                <div class="w-px h-6 bg-slate-600 mx-1"></div>
-                <button onclick="runOCR()" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded text-xs font-bold transition"><i class="fas fa-font mr-1"></i> Leer Texto (OCR)</button>
-                
-                <!-- Acciones Confirmar/Cancelar -->
-                <button onclick="confirmAction()" id="confirmActionBtn" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded text-xs font-bold hidden ml-2">Guardar Cambios</button>
-                <button onclick="cancelAction()" id="cancelActionBtn" class="bg-rose-600 hover:bg-rose-500 px-4 py-2 rounded text-xs font-bold hidden">Cancelar</button>
+        <div class="w-full max-w-5xl flex justify-between items-center mb-4 text-white">
+            <div class="flex gap-2">
+                <button onclick="zoomIn()" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg transition-colors"><i class="fas fa-search-plus"></i></button>
+                <button onclick="zoomOut()" class="bg-slate-800 hover:bg-slate-700 p-3 rounded-lg transition-colors"><i class="fas fa-search-minus"></i></button>
+                <button onclick="startCrop()" id="cropBtn" class="bg-indigo-600 hover:bg-indigo-500 px-5 py-3 rounded-lg text-xs font-bold transition-colors">Recortar</button>
+                <button onclick="confirmCrop()" id="confirmCropBtn" class="bg-emerald-600 hover:bg-emerald-500 px-5 py-3 rounded-lg text-xs font-bold hidden transition-colors">Confirmar (OK)</button>
+                <button onclick="cancelCrop()" id="cancelCropBtn" class="bg-rose-600 hover:bg-rose-500 px-5 py-3 rounded-lg text-xs font-bold hidden transition-colors">Cancelar (X)</button>
             </div>
-            <button onclick="closePreview()" class="w-10 h-10 bg-slate-800 hover:bg-rose-600 text-white rounded-full flex items-center justify-center transition shadow-lg"><i class="fas fa-times"></i></button>
+            <button onclick="closePreview()" class="w-10 h-10 bg-slate-800 hover:bg-rose-600 text-white rounded-full flex items-center justify-center text-xl transition-colors shadow-lg">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-        
-        <div id="modalImageContainer" class="relative">
-            <img id="modalImg" src="">
-            <canvas id="drawCanvas"></canvas>
-        </div>
-        <div id="cropperContainer" class="rounded-xl overflow-hidden hidden w-full flex justify-center max-h-[70vh]"><img id="cropperImg" src=""></div>
+        <div id="modalImageContainer"><img id="modalImg" src=""></div>
+        <div id="cropperContainer" class="rounded-xl overflow-hidden hidden"><img id="cropperImg" src=""></div>
     </div>
 
-    <!-- Visor Avanzado (Scroll Vertical Continuo) -->
+    <!-- Modal Visor Avanzado -->
     <div id="fullViewerModal" class="hidden fixed inset-0 bg-[#323639] z-[150] flex flex-col">
-        <div class="h-14 bg-[#323639] border-b border-gray-600 flex justify-between items-center px-4 text-white select-none shadow-md z-10">
+        <div class="h-14 bg-[#323639] border-b border-gray-600 flex justify-between items-center px-4 text-white select-none">
             <div class="flex items-center gap-4">
                 <button onclick="closeFullViewer()" class="text-gray-300 hover:text-white hover:bg-gray-700 p-2 rounded-full transition"><i class="fas fa-arrow-left"></i></button>
-                <span class="text-sm font-semibold text-gray-200">Visor de Documento</span>
+                <span id="viewerTitle" class="text-sm font-semibold truncate max-w-[150px] md:max-w-xs text-gray-200"></span>
+                
+                <!-- Nuevas Herramientas -->
+                <div class="flex items-center gap-2 text-gray-300 border-l border-gray-600 pl-4 ml-2" id="advancedTools">
+                    <button onclick="applyFilterToActive('bw')" class="hover:bg-gray-700 p-1.5 rounded transition text-[10px] flex flex-col items-center" title="Blanco y Negro"><i class="fas fa-adjust text-sm"></i>B/N</button>
+                    <button onclick="applyFilterToActive('contrast')" class="hover:bg-gray-700 p-1.5 rounded transition text-[10px] flex flex-col items-center" title="Alto Contraste"><i class="fas fa-moon text-sm"></i>Contraste</button>
+                    <button onclick="applyFilterToActive('reset')" class="hover:bg-gray-700 p-1.5 rounded transition text-[10px] flex flex-col items-center" title="Restaurar"><i class="fas fa-undo text-sm"></i>Original</button>
+                    <div class="h-6 w-px bg-gray-600 mx-1"></div>
+                    <button onclick="toggleAnnotationMode()" id="btnAnnotation" class="hover:bg-gray-700 p-1.5 rounded transition text-[10px] flex flex-col items-center" title="Anotaciones/Resaltado"><i class="fas fa-highlighter text-sm"></i>Anotar</button>
+                    <button onclick="addSignature()" class="hover:bg-gray-700 p-1.5 rounded transition text-[10px] flex flex-col items-center" title="Firma Electrónica"><i class="fas fa-signature text-sm"></i>Firma</button>
+                    <div class="h-6 w-px bg-gray-600 mx-1"></div>
+                    <button onclick="runOCR()" class="hover:bg-gray-700 p-1.5 rounded transition text-[10px] flex flex-col items-center" title="Extraer Texto"><i class="fas fa-font text-sm"></i>OCR</button>
+                </div>
             </div>
+
             <div class="flex items-center gap-2 md:gap-4 text-gray-300">
-                <div class="flex items-center bg-gray-800 px-3 py-1 rounded text-xs gap-1">Pág <span id="viewerCurrentPage">1</span> de <span id="viewerTotalPages">1</span></div>
-                <button onclick="viewerZoomOut()" class="hover:bg-gray-700 p-2 rounded-full"><i class="fas fa-minus"></i></button>
+                <div class="hidden md:flex items-center bg-gray-800 px-3 py-1 rounded text-xs gap-1">
+                    <span id="viewerCurrentPage">1</span> / <span id="viewerTotalPages">1</span>
+                </div>
+                <div class="h-5 w-px bg-gray-600 hidden md:block"></div>
+                <button onclick="viewerZoomOut()" class="hover:bg-gray-700 p-2 rounded-full transition"><i class="fas fa-minus"></i></button>
                 <span id="viewerZoomLabel" class="text-xs font-mono w-10 text-center">100%</span>
-                <button onclick="viewerZoomIn()" class="hover:bg-gray-700 p-2 rounded-full"><i class="fas fa-plus"></i></button>
+                <button onclick="viewerZoomIn()" class="hover:bg-gray-700 p-2 rounded-full transition"><i class="fas fa-plus"></i></button>
+                <div class="h-5 w-px bg-gray-600"></div>
+                <button onclick="printEditedPDF()" class="hover:bg-gray-700 p-2 rounded-full transition" title="Imprimir"><i class="fas fa-print"></i></button>
+                <button onclick="exportPDF()" class="hover:bg-gray-700 p-2 rounded-full transition" title="Descargar"><i class="fas fa-download"></i></button>
             </div>
         </div>
         <div class="flex flex-1 overflow-hidden">
-            <!-- Barra Lateral Sincronizada -->
-            <div class="w-24 md:w-48 bg-[#202124] overflow-y-auto flex flex-col items-center py-4 gap-4" id="viewerSidebar"></div>
-            <!-- Área Principal (Scroll Continuo) -->
-            <div class="flex-1 bg-[#525659] overflow-y-auto p-4 md:p-8 relative" id="viewerMainArea" onscroll="handleViewerScroll()">
-                <div id="viewerImagesContainer" class="flex flex-col gap-6 items-center w-full transform-origin-top transition-transform" style="transform: scale(1);">
-                    <!-- Las imágenes se inyectan aquí -->
-                </div>
+            <div class="w-24 md:w-48 bg-[#202124] overflow-y-auto flex flex-col items-center py-4 gap-6" id="viewerSidebar"></div>
+            <!-- Visor Principal con Scroll Vertical -->
+            <div class="flex-1 bg-[#525659] overflow-y-auto flex flex-col items-center p-4 md:p-8 relative gap-6" id="viewerMainArea">
+                <!-- Se inyectarán las imágenes aquí -->
             </div>
         </div>
     </div>
 
-    <!-- Modal Resultados OCR -->
-    <div id="ocrModal" class="hidden fixed inset-0 bg-slate-900/80 z-[200] flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl w-full max-w-2xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-lg text-slate-800">Texto Extraído (OCR)</h3>
-                <button onclick="document.getElementById('ocrModal').classList.add('hidden')" class="text-slate-400 hover:text-rose-500"><i class="fas fa-times text-xl"></i></button>
-            </div>
-            <textarea id="ocrResultText" class="w-full flex-1 p-4 border border-slate-200 rounded-lg text-sm bg-slate-50 outline-none focus:border-indigo-500 min-h-[200px]" readonly></textarea>
-            <div class="mt-4 flex justify-end gap-2">
-                <button onclick="copyOCR()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold"><i class="fas fa-copy mr-1"></i> Copiar Texto</button>
-            </div>
-        </div>
-    </div>
+    <iframe id="printFrame" class="hidden"></iframe>
 
-    <div id="loader" class="hidden fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[300]">
+    <div id="loader" class="hidden fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[200]">
         <div class="bg-white p-6 rounded-2xl flex flex-col items-center shadow-2xl">
             <div class="animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent mb-2"></div>
             <p class="text-xs font-bold mt-2 text-slate-700" id="loaderText">Procesando...</p>
@@ -150,416 +241,663 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-        let allPages = []; let cropper = null; let currentEditingPageId = null; 
-        let viewerZoom = 1; let isModalOpen = false;
-
-        // Variables Dibujo
-        let isDrawing = false; let drawMode = null; // 'signature' | 'highlight'
-        const canvas = document.getElementById('drawCanvas');
-        const ctx = canvas.getContext('2d');
-        let drawHistory = []; // Para poder guardar el trazo
+        let allPages = []; let cropper = null; let currentEditingPageId = null; let currentZoom = 1;
+        let viewerZoom = 1; let currentMode = 'merge';
+        let isModalOpen = false; 
+        let viewerObserver = null;
+        let isAnnotationMode = false;
 
         const pagesGrid = document.getElementById('pagesGrid');
         const loader = document.getElementById('loader');
 
         new Sortable(pagesGrid, { animation: 150, ghostClass: 'sortable-ghost', delay: 50, delayOnTouchOnly: true });
+        document.getElementById('dropzone').onclick = () => document.getElementById('fileInput').click();
 
-        // Navegación (Atrás/ESC)
-        window.addEventListener('popstate', () => {
-            if (isModalOpen) { closePreview(true); closeFullViewer(true); }
+        // Restaurar el nombre por defecto si se deja vacío
+        const nameNav = document.getElementById('outputFileName');
+        const nameEditor = document.getElementById('outputFileNameEditor');
+        [nameNav, nameEditor].forEach(input => {
+            input.addEventListener('input', (e) => {
+                nameNav.value = e.target.value;
+                nameEditor.value = e.target.value;
+                updateExample();
+            });
+            input.addEventListener('blur', (e) => {
+                if(e.target.value.trim() === '') {
+                    const defaultName = allPages.length > 0 ? allPages[0].originalName : "Documento_Editado";
+                    nameNav.value = defaultName;
+                    nameEditor.value = defaultName;
+                    updateExample();
+                }
+            });
         });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                if(document.getElementById('previewModal').style.display === 'flex') closePreview(true);
-                else if(!document.getElementById('fullViewerModal').classList.contains('hidden')) closeFullViewer(true);
+
+        window.addEventListener('popstate', () => {
+            if (isModalOpen) {
+                cancelCrop();
+                document.getElementById('previewModal').style.display = 'none';
+                document.getElementById('fullViewerModal').classList.add('hidden');
+                isModalOpen = false;
             }
         });
 
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (document.getElementById('previewModal').style.display === 'flex') {
+                    closePreview();
+                } else if (!document.getElementById('fullViewerModal').classList.contains('hidden')) {
+                    closeFullViewer();
+                }
+            }
+        });
+
+        function dataUriToUint8Array(dataUri) {
+            const parts = dataUri.split(',');
+            const mime = parts[0].match(/:(.*?);/)[1];
+            const bstr = atob(parts[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            return { u8arr, mime };
+        }
+
+        async function getCompressedData(dataUri, qualityStr) {
+            const quality = parseFloat(qualityStr);
+            if (quality >= 0.95 || dataUri.includes("image/png")) return dataUri;
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width; canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.src = dataUri;
+            });
+        }
+
+        function rotatePageImage(event, pageId) {
+            event.stopPropagation();
+            const pageObj = allPages.find(p => p.id === pageId);
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.height; canvas.height = img.width; 
+                const ctx = canvas.getContext('2d');
+                ctx.translate(canvas.width/2, canvas.height/2);
+                ctx.rotate(90 * Math.PI / 180);
+                ctx.drawImage(img, -img.width/2, -img.height/2);
+                const newData = canvas.toDataURL('image/jpeg', 0.95);
+                
+                pageObj.currentData = newData;
+                pageObj.originalCrop = newData; 
+                document.querySelector(`[data-id="${pageId}"] .thumbnail-img`).src = newData;
+                
+                if(!document.getElementById('fullViewerModal').classList.contains('hidden')) {
+                    const viewerImg = document.getElementById(`view-img-${pageId}`);
+                    if(viewerImg) viewerImg.src = newData;
+                    document.getElementById(`sidebar-img-${pageId}`).src = newData;
+                }
+            };
+            img.src = pageObj.currentData;
+        }
+
+        function setAppMode(mode) {
+            currentMode = mode;
+            const splitOptions = document.getElementById('splitOptions');
+            const navSaveBtn = document.getElementById('navSaveBtn');
+            const navNameInput = document.getElementById('outputFileName');
+            const btnMerge = document.getElementById('btnModeMerge');
+            const btnSplit = document.getElementById('btnModeSplit');
+
+            if (mode === 'split') {
+                splitOptions.classList.remove('hidden');
+                navSaveBtn.classList.add('hidden');
+                navNameInput.classList.add('hidden');
+                btnSplit.classList.add('mode-active');
+                btnMerge.classList.remove('mode-active');
+            } else {
+                splitOptions.classList.add('hidden');
+                navSaveBtn.classList.remove('hidden');
+                navNameInput.classList.remove('hidden');
+                btnMerge.classList.add('mode-active');
+                btnSplit.classList.remove('mode-active');
+            }
+            updateExample();
+        }
+
+        const inputsForExample = ['outputFileNameEditor', 'enumFormat', 'enumPosition'];
+        inputsForExample.forEach(id => document.getElementById(id).addEventListener('input', updateExample));
+
+        function updateExample() {
+            const name = nameEditor.value || "Documento";
+            const pattern = document.getElementById('enumFormat').value || "#";
+            const pos = document.getElementById('enumPosition').value;
+            const formatted = pattern.replace('#', '1');
+            document.getElementById('nameExample').innerText = pos === 'end' ? `${name}${formatted}.pdf` : `${formatted}${name}.pdf`;
+        }
+
+        function toggleManualSize() {
+            const val = document.getElementById('pageSize').value;
+            document.getElementById('manualInputs').classList.toggle('hidden', val !== 'manual');
+        }
+
         async function handleFiles(files) {
             if (files.length === 0) return;
-            showLoader("Cargando archivos...");
+            
+            // Asignar nombre original al input la primera vez
+            if (allPages.length === 0) {
+                const firstCleanName = files[0].name.replace(/\.[^/.]+$/, "");
+                nameNav.value = firstCleanName;
+                nameEditor.value = firstCleanName;
+            }
+
+            loader.classList.remove('hidden'); document.getElementById('loaderText').innerText = "Cargando archivos...";
+            document.getElementById('modeSelector').classList.remove('hidden');
             document.getElementById('editorContainer').classList.remove('hidden');
+            setAppMode('merge'); 
 
             for (const file of files) {
+                const cleanName = file.name.replace(/\.[^/.]+$/, "");
                 if (file.type === "application/pdf") {
                     const arrayBuffer = await file.arrayBuffer();
                     const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
                     for (let i = 1; i <= pdf.numPages; i++) {
                         const page = await pdf.getPage(i);
                         const viewport = page.getViewport({scale: 2.0});
-                        const cvs = document.createElement('canvas');
-                        cvs.height = viewport.height; cvs.width = viewport.width;
-                        await page.render({canvasContext: cvs.getContext('2d'), viewport: viewport}).promise;
-                        addPageToGrid(cvs.toDataURL('image/jpeg', 0.95));
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height; canvas.width = viewport.width;
+                        await page.render({canvasContext: context, viewport: viewport}).promise;
+                        addPageToGrid(arrayBuffer, i - 1, canvas.toDataURL('image/jpeg', 0.95), "pdf", cleanName);
                     }
                 } else if (file.type.startsWith("image/")) {
                     const reader = new FileReader();
-                    reader.onload = (e) => addPageToGrid(e.target.result);
+                    reader.onload = (e) => addPageToGrid(e.target.result, 0, e.target.result, "image", cleanName);
                     reader.readAsDataURL(file);
                 }
             }
-            hideLoader();
+            loader.classList.add('hidden');
         }
 
-        function addPageToGrid(displayData) {
+        function addPageToGrid(originalData, originalIndex, displayData, type, originalName) {
             const pageId = Math.random().toString(36).substr(2, 9);
-            allPages.push({ id: pageId, currentData: displayData, originalCrop: displayData });
+            allPages.push({ id: pageId, originalData, originalIndex, currentData: displayData, originalCrop: displayData, type, originalName });
             const div = document.createElement('div');
             div.className = 'page-card group relative bg-white border border-slate-200 rounded-xl p-2 shadow-sm flex flex-col justify-between';
             div.dataset.id = pageId;
+            
             div.innerHTML = `
                 <div class="page-number absolute -top-2 -left-2 bg-indigo-600 text-white w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold z-10 border-2 border-white shadow"></div>
                 <div class="relative w-full h-32 md:h-40 flex items-center justify-center bg-slate-100 rounded-lg overflow-hidden cursor-pointer" onclick="openPreview('${pageId}')">
                     <img src="${displayData}" class="thumbnail-img object-contain w-full h-full">
                 </div>
                 <div class="action-btns absolute top-3 right-3 z-20 flex flex-col gap-2">
-                    <button onclick="event.stopPropagation(); deletePage('${pageId}')" class="w-8 h-8 bg-rose-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-rose-700 transition"><i class="fas fa-trash-alt text-xs"></i></button>
+                    <button onclick="rotatePageImage(event, '${pageId}')" class="w-8 h-8 bg-indigo-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-700 transition-colors"><i class="fas fa-undo-alt text-xs"></i></button>
+                    <button onclick="event.stopPropagation(); deletePage('${pageId}')" class="w-8 h-8 bg-rose-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-rose-700 transition-colors"><i class="fas fa-trash-alt text-xs"></i></button>
                 </div>
+                <p class="text-[9px] text-slate-500 mt-2 truncate text-center font-semibold px-1">${originalName}</p>
             `;
             pagesGrid.appendChild(div);
         }
 
-        // ==========================================
-        // EXPORTACIÓN PDF
-        // ==========================================
+        async function buildFinalPDF() {
+            const items = Array.from(pagesGrid.children);
+            if (items.length === 0) return null;
+            
+            const mergedPdf = await PDFLib.PDFDocument.create();
+            const selection = document.getElementById('pageSize').value;
+            const margin = parseInt(document.getElementById('pageMargin').value) || 0;
+            const qualitySetting = document.getElementById('qualitySlider').value;
+            const watermark = document.getElementById('watermarkInput').value.trim();
+            
+            let targetSize = null;
+            if(selection === 'letter') targetSize = [612, 792];
+            else if(selection === 'legal') targetSize = [612, 1008];
+            else if(selection === 'manual') {
+                const wVal = parseFloat(document.getElementById('manualW').value);
+                const hVal = parseFloat(document.getElementById('manualH').value);
+                if(wVal > 0 && hVal > 0) targetSize = [wVal * 2.83465, hVal * 2.83465];
+            }
+
+            for (const item of items) {
+                const pageObj = allPages.find(p => p.id === item.dataset.id);
+                const compressedData = await getCompressedData(pageObj.currentData, qualitySetting);
+                const { u8arr, mime } = dataUriToUint8Array(compressedData);
+                const img = mime === "image/png" ? await mergedPdf.embedPng(u8arr) : await mergedPdf.embedJpg(u8arr);
+                
+                let page;
+                if (!targetSize) {
+                    page = mergedPdf.addPage([img.width + (margin * 2), img.height + (margin * 2)]);
+                    page.drawImage(img, { x: margin, y: margin, width: img.width, height: img.height });
+                } else {
+                    page = mergedPdf.addPage(targetSize);
+                    const availableWidth = targetSize[0] - (margin * 2);
+                    const availableHeight = targetSize[1] - (margin * 2);
+                    const scale = Math.min(availableWidth / img.width, availableHeight / img.height);
+                    const dWidth = img.width * scale; 
+                    const dHeight = img.height * scale;
+                    page.drawImage(img, { x: (targetSize[0] - dWidth) / 2, y: (targetSize[1] - dHeight) / 2, width: dWidth, height: dHeight });
+                }
+
+                if(watermark) {
+                    const { width, height } = page.getSize();
+                    page.drawText(watermark, {
+                        x: width / 4, y: height / 2,
+                        size: 45, opacity: 0.25, rotate: PDFLib.degrees(45), color: PDFLib.rgb(0.5, 0.5, 0.5)
+                    });
+                }
+            }
+            return await mergedPdf.save();
+        }
+
+        async function printEditedPDF() {
+            if (pagesGrid.children.length === 0) return;
+            loader.classList.remove('hidden'); document.getElementById('loaderText').innerText = "Preparando impresión...";
+            try {
+                const pdfBytes = await buildFinalPDF();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const blobUrl = URL.createObjectURL(blob);
+                const iframe = document.getElementById('printFrame');
+                iframe.src = blobUrl;
+                iframe.onload = () => { iframe.contentWindow.print(); };
+            } catch (e) { alert("Error al preparar impresión."); }
+            loader.classList.add('hidden');
+        }
+
         async function exportPDF() {
+            const fileName = nameNav.value.trim() || "Documento_Editado";
+            loader.classList.remove('hidden'); document.getElementById('loaderText').innerText = "Generando PDF final...";
+            try {
+                const pdfBytes = await buildFinalPDF();
+                if(pdfBytes) downloadBlob(pdfBytes, `${fileName}.pdf`);
+            } catch (e) { console.error(e); alert("Ocurrió un error. Verifica dimensiones personalizadas o archivos."); }
+            loader.classList.add('hidden');
+        }
+
+        async function splitByRange() {
             const items = Array.from(pagesGrid.children);
             if (items.length === 0) return;
-            showLoader("Generando PDF final...");
+            const size = parseInt(prompt("¿Cada cuántas páginas quieres separar los PDFs?", "1"));
+            if (isNaN(size) || size <= 0) return;
             
+            const baseName = nameEditor.value.trim() || "Documento_Grupo";
+            const enumPattern = document.getElementById('enumFormat').value || "#";
+            const enumPos = document.getElementById('enumPosition').value;
+            const margin = parseInt(document.getElementById('pageMargin').value) || 0;
+            const qualitySetting = document.getElementById('qualitySlider').value;
+            const watermark = document.getElementById('watermarkInput').value.trim();
+            
+            loader.classList.remove('hidden'); document.getElementById('loaderText').innerText = "Empaquetando grupos...";
             try {
-                const mergedPdf = await PDFLib.PDFDocument.create();
-                for (const item of items) {
-                    const pageObj = allPages.find(p => p.id === item.dataset.id);
-                    const parts = pageObj.currentData.split(',');
-                    const u8arr = new Uint8Array(atob(parts[1]).split('').map(c => c.charCodeAt(0)));
+                for (let i = 0; i < items.length; i += size) {
+                    const chunk = items.slice(i, i + size);
+                    const subPdf = await PDFLib.PDFDocument.create();
                     
-                    const img = pageObj.currentData.includes("image/png") 
-                        ? await mergedPdf.embedPng(u8arr) 
-                        : await mergedPdf.embedJpg(u8arr);
-                    
-                    const page = mergedPdf.addPage([img.width, img.height]);
-                    page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+                    for (const item of chunk) {
+                        const pageObj = allPages.find(p => p.id === item.dataset.id);
+                        const compressedData = await getCompressedData(pageObj.currentData, qualitySetting);
+                        const { u8arr, mime } = dataUriToUint8Array(compressedData);
+                        const img = mime === "image/png" ? await subPdf.embedPng(u8arr) : await subPdf.embedJpg(u8arr);
+                        const page = subPdf.addPage([img.width + (margin * 2), img.height + (margin * 2)]);
+                        page.drawImage(img, { x: margin, y: margin, width: img.width, height: img.height });
+                        
+                        if(watermark) {
+                            page.drawText(watermark, {
+                                x: page.getSize().width / 4, y: page.getSize().height / 2,
+                                size: 45, opacity: 0.25, rotate: PDFLib.degrees(45), color: PDFLib.rgb(0.5, 0.5, 0.5)
+                            });
+                        }
+                    }
+                    const partNum = (i/size) + 1;
+                    const formattedEnum = enumPattern.replace('#', partNum);
+                    downloadBlob(await subPdf.save(), enumPos === 'end' ? `${baseName}${formattedEnum}.pdf` : `${formattedEnum}${baseName}.pdf`);
                 }
-                
-                const pdfBytes = await mergedPdf.save();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = (document.getElementById('outputFileName').value || "Documento_Editado") + ".pdf";
-                link.click();
-            } catch (e) { alert("Error al generar PDF."); }
-            hideLoader();
+            } catch (error) { alert("Error al procesar la división."); }
+            loader.classList.add('hidden');
         }
 
-        // ==========================================
-        // MODAL EDICIÓN Y FILTROS
-        // ==========================================
+        function downloadBlob(data, name) {
+            const blob = new Blob([data], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url; link.download = name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
         function openPreview(pageId) {
-            currentEditingPageId = pageId;
             const pageObj = allPages.find(p => p.id === pageId);
-            const img = document.getElementById('modalImg');
-            
-            img.onload = () => { resizeCanvas(); }; // Ajustar canvas al cargar imagen
-            img.src = pageObj.currentData;
-            
+            currentEditingPageId = pageId; currentZoom = 1;
+            document.getElementById('modalImg').src = pageObj.currentData;
+            document.getElementById('modalImg').style.transform = `scale(1)`;
             document.getElementById('previewModal').style.display = 'flex';
-            history.pushState({ modalOpen: true }, ''); isModalOpen = true;
-            resetEditTools();
+            
+            history.pushState({ modalOpen: true }, '');
+            isModalOpen = true;
         }
 
-        function closePreview(fromHistory = false) {
-            if (isModalOpen && !fromHistory) { history.back(); return; }
-            resetEditTools();
-            document.getElementById('previewModal').style.display = 'none';
-            isModalOpen = false;
+        function closePreview() {
+            if (isModalOpen) {
+                history.back(); 
+            } else {
+                cancelCrop();
+                document.getElementById('previewModal').style.display = 'none';
+            }
         }
 
-        function resetEditTools() {
-            cancelAction();
-            drawMode = null; canvas.classList.remove('active');
-            document.getElementById('btnSign').classList.remove('bg-indigo-600');
-            document.getElementById('btnHighlight').classList.remove('bg-yellow-600');
-        }
-
-        // --- Filtros ---
-        function applyFilter(type) {
-            showLoader("Aplicando filtro...");
-            setTimeout(() => {
-                const img = document.getElementById('modalImg');
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = img.naturalWidth; tempCanvas.height = img.naturalHeight;
-                const tempCtx = tempCanvas.getContext('2d');
-                
-                if(type === 'bw') tempCtx.filter = 'grayscale(100%) contrast(150%) brightness(110%)';
-                if(type === 'contrast') tempCtx.filter = 'contrast(130%) saturate(120%)';
-                
-                tempCtx.drawImage(img, 0, 0);
-                saveModifiedImage(tempCanvas.toDataURL('image/jpeg', 0.95));
-                hideLoader();
-            }, 50);
-        }
-
-        // --- Recorte (Cropper) ---
         function startCrop() {
             const pageObj = allPages.find(p => p.id === currentEditingPageId);
             document.getElementById('modalImageContainer').style.display = 'none';
             const cropperImg = document.getElementById('cropperImg');
-            cropperImg.src = pageObj.currentData;
+            cropperImg.src = pageObj.originalCrop;
             document.getElementById('cropperContainer').classList.remove('hidden');
-            
-            showActionButtons();
+            document.getElementById('cropBtn').classList.add('hidden');
+            document.getElementById('confirmCropBtn').classList.remove('hidden');
+            document.getElementById('cancelCropBtn').classList.remove('hidden');
             cropper = new Cropper(cropperImg, { viewMode: 1, autoCropArea: 1 });
         }
-
-        // --- Dibujo / Firmas ---
-        function resizeCanvas() {
-            const img = document.getElementById('modalImg');
-            // Mapeamos el tamaño lógico (natural) y el visual
-            canvas.width = img.naturalWidth; 
-            canvas.height = img.naturalHeight;
-            canvas.style.width = img.clientWidth + 'px';
-            canvas.style.height = img.clientHeight + 'px';
+        function confirmCrop() {
+            if (!cropper) return;
+            const croppedDataUrl = cropper.getCroppedCanvas({ imageSmoothingQuality: 'high' }).toDataURL('image/jpeg', 0.95);
+            const idx = allPages.findIndex(p => p.id === currentEditingPageId);
+            allPages[idx].currentData = croppedDataUrl;
+            document.querySelector(`[data-id="${currentEditingPageId}"] .thumbnail-img`).src = croppedDataUrl;
+            document.getElementById('modalImg').src = croppedDataUrl;
+            cancelCrop();
         }
-
-        window.addEventListener('resize', () => {
-            if(document.getElementById('previewModal').style.display === 'flex') resizeCanvas();
-        });
-
-        function toggleDraw(mode) {
-            if(drawMode === mode) {
-                drawMode = null; canvas.classList.remove('active');
-                document.getElementById('btnSign').classList.replace('bg-indigo-600', 'bg-slate-700');
-                document.getElementById('btnHighlight').classList.replace('bg-yellow-600', 'bg-slate-700');
-                document.getElementById('confirmActionBtn').classList.add('hidden');
-                document.getElementById('cancelActionBtn').classList.add('hidden');
-                return;
-            }
-            drawMode = mode;
-            canvas.classList.add('active');
-            showActionButtons();
-            
-            // Estilos UI
-            document.getElementById('btnSign').classList.toggle('bg-indigo-600', mode === 'signature');
-            document.getElementById('btnHighlight').classList.toggle('bg-yellow-600', mode === 'highlight');
-            
-            // Configurar Pincel
-            ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-            if(mode === 'signature') {
-                ctx.strokeStyle = '#000000'; ctx.lineWidth = canvas.width * 0.005; // Grosor relativo
-                ctx.globalCompositeOperation = 'source-over';
-            } else {
-                ctx.strokeStyle = 'rgba(255, 235, 59, 0.4)'; // Amarillo transparente
-                ctx.lineWidth = canvas.width * 0.03;
-                ctx.globalCompositeOperation = 'multiply'; // Efecto resaltador
-            }
-        }
-
-        // Eventos de dibujo (Mouse / Touch)
-        function getPointerPos(e) {
-            const rect = canvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            // Escalar coordenadas visuales a coordenadas lógicas del canvas
-            return {
-                x: (clientX - rect.left) * (canvas.width / rect.width),
-                y: (clientY - rect.top) * (canvas.height / rect.height)
-            };
-        }
-
-        const startDraw = (e) => { if(!drawMode) return; isDrawing = true; const pos = getPointerPos(e); ctx.beginPath(); ctx.moveTo(pos.x, pos.y); };
-        const draw = (e) => { if(!isDrawing) return; e.preventDefault(); const pos = getPointerPos(e); ctx.lineTo(pos.x, pos.y); ctx.stroke(); };
-        const endDraw = () => { if(isDrawing) { ctx.closePath(); isDrawing = false; } };
-
-        canvas.addEventListener('mousedown', startDraw); canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', endDraw); canvas.addEventListener('mouseout', endDraw);
-        canvas.addEventListener('touchstart', startDraw, {passive:false}); canvas.addEventListener('touchmove', draw, {passive:false});
-        canvas.addEventListener('touchend', endDraw);
-
-        // --- Acciones Comunes Modal ---
-        function showActionButtons() {
-            document.getElementById('confirmActionBtn').classList.remove('hidden');
-            document.getElementById('cancelActionBtn').classList.remove('hidden');
-        }
-
-        function cancelAction() {
+        function cancelCrop() {
             if (cropper) { cropper.destroy(); cropper = null; }
             document.getElementById('cropperContainer').classList.add('hidden');
             document.getElementById('modalImageContainer').style.display = 'flex';
-            document.getElementById('confirmActionBtn').classList.add('hidden');
-            document.getElementById('cancelActionBtn').classList.add('hidden');
-            
-            // Limpiar Canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawMode = null; canvas.classList.remove('active');
+            document.getElementById('cropBtn').classList.remove('hidden');
+            document.getElementById('confirmCropBtn').classList.add('hidden');
+            document.getElementById('cancelCropBtn').classList.add('hidden');
         }
-
-        function confirmAction() {
-            if (cropper) {
-                saveModifiedImage(cropper.getCroppedCanvas({ imageSmoothingQuality: 'high' }).toDataURL('image/jpeg', 0.95));
-                cancelAction();
-            } else if (drawMode) {
-                // Fusionar imagen base + canvas de dibujo
-                const mergedCanvas = document.createElement('canvas');
-                mergedCanvas.width = canvas.width; mergedCanvas.height = canvas.height;
-                const mCtx = mergedCanvas.getContext('2d');
-                
-                const baseImg = document.getElementById('modalImg');
-                mCtx.drawImage(baseImg, 0, 0, mergedCanvas.width, mergedCanvas.height);
-                mCtx.drawImage(canvas, 0, 0); // Dibujar trazos encima
-                
-                saveModifiedImage(mergedCanvas.toDataURL('image/jpeg', 0.95));
-                cancelAction();
-            }
-        }
-
-        function saveModifiedImage(dataUrl) {
-            const idx = allPages.findIndex(p => p.id === currentEditingPageId);
-            allPages[idx].currentData = dataUrl;
-            document.querySelector(`[data-id="${currentEditingPageId}"] .thumbnail-img`).src = dataUrl;
-            document.getElementById('modalImg').src = dataUrl;
-            resizeCanvas(); // reajustar canvas a la nueva imagen
-        }
-
-        // ==========================================
-        // OCR (Extracción de Texto)
-        // ==========================================
-        async function runOCR() {
-            const pageObj = allPages.find(p => p.id === currentEditingPageId);
-            showLoader("Analizando texto (esto puede tardar unos segundos)...");
-            try {
-                // Usamos Tesseract.js para español
-                const result = await Tesseract.recognize(pageObj.currentData, 'spa', {
-                    logger: m => console.log(m)
-                });
-                document.getElementById('ocrResultText').value = result.data.text;
-                document.getElementById('ocrModal').classList.remove('hidden');
-            } catch(e) {
-                alert("Error al extraer texto. Asegúrate de tener conexión a internet para descargar el modelo de idioma.");
-            }
-            hideLoader();
-        }
-
-        function copyOCR() {
-            const text = document.getElementById('ocrResultText');
-            text.select(); document.execCommand('copy');
-            alert("¡Texto copiado al portapapeles!");
-        }
-
-        // ==========================================
-        // VISOR AVANZADO (SCROLL CONTINUO)
-        // ==========================================
+        function zoomIn() { currentZoom += 0.3; updateZoom(); }
+        function zoomOut() { currentZoom = Math.max(0.4, currentZoom - 0.3); updateZoom(); }
+        function updateZoom() { const img = document.getElementById('modalImg'); img.style.transform = `scale(${currentZoom})`; img.style.maxWidth = currentZoom > 1 ? 'none' : '100%'; }
+        
+        // --- VISOR AVANZADO (Multihost, Filtros, Firmas, Scroll) ---
         function openFullViewer() {
             const items = Array.from(pagesGrid.children);
             if (items.length === 0) return;
             
             const sidebar = document.getElementById('viewerSidebar');
-            const mainContainer = document.getElementById('viewerImagesContainer');
-            sidebar.innerHTML = ''; mainContainer.innerHTML = '';
+            const mainArea = document.getElementById('viewerMainArea');
+            sidebar.innerHTML = '';
+            mainArea.innerHTML = '';
+            viewerZoom = 1; 
             
+            document.getElementById('viewerTitle').innerText = nameNav.value || "Documento.pdf";
             document.getElementById('viewerTotalPages').innerText = items.length;
-            viewerZoom = 1; updateViewerZoom();
 
             items.forEach((item, index) => {
                 const pageObj = allPages.find(p => p.id === item.dataset.id);
                 
-                // 1. Crear Miniatura Sidebar
+                // --- Sidebar Miniatura ---
                 const thumbDiv = document.createElement('div');
-                thumbDiv.className = 'w-16 h-20 md:w-32 md:h-40 bg-white flex items-center justify-center cursor-pointer border-2 border-transparent transition-all shadow-sm relative viewer-thumb';
-                thumbDiv.dataset.index = index;
-                thumbDiv.onclick = () => scrollToPage(index);
+                thumbDiv.className = 'w-16 h-20 md:w-36 md:h-44 bg-white flex items-center justify-center cursor-pointer border border-transparent transition-all shadow-md relative thumb-sidebar-item';
+                thumbDiv.id = `sidebar-thumb-${pageObj.id}`;
+                thumbDiv.onclick = () => {
+                    const el = document.getElementById(`view-container-${pageObj.id}`);
+                    if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                };
+                
                 thumbDiv.innerHTML = `
-                    <img src="${pageObj.currentData}" class="object-contain w-full h-full p-1">
-                    <div class="absolute -bottom-5 text-gray-400 text-xs text-center w-full">${index + 1}</div>
+                    <img id="sidebar-img-${pageObj.id}" src="${pageObj.currentData}" class="object-contain w-full h-full p-1">
+                    <div class="absolute -bottom-5 text-gray-400 text-[10px] md:text-xs text-center w-full">${index + 1}</div>
                 `;
                 sidebar.appendChild(thumbDiv);
+
+                // --- Main Area Contenedor ---
+                const imgContainer = document.createElement('div');
+                imgContainer.className = "page-container flex flex-col items-center shadow-2xl relative bg-white";
+                imgContainer.id = `view-container-${pageObj.id}`;
+                imgContainer.dataset.index = index + 1;
+                imgContainer.dataset.id = pageObj.id;
+                imgContainer.style.width = '100%';
+                imgContainer.style.maxWidth = '800px'; 
                 
-                // 2. Crear Imagen en Área Principal
-                const mainImg = document.createElement('img');
-                mainImg.src = pageObj.currentData;
-                mainImg.className = 'viewer-page shadow-xl max-w-full';
-                mainImg.dataset.index = index;
-                // Ancho base del visor para que se vea legible
-                mainImg.style.width = '800px'; 
-                mainContainer.appendChild(mainImg);
+                imgContainer.innerHTML = `
+                    <img src="${pageObj.currentData}" id="view-img-${pageObj.id}" class="viewer-img w-full h-auto block select-none pointer-events-none">
+                    <canvas id="canvas-${pageObj.id}" class="absolute top-0 left-0 w-full h-full pointer-events-none cursor-crosshair"></canvas>
+                `;
+                mainArea.appendChild(imgContainer);
             });
             
+            updateViewerZoom();
+            setupViewerObserver();
             document.getElementById('fullViewerModal').classList.remove('hidden');
-            history.pushState({ modalOpen: true }, ''); isModalOpen = true;
             
-            // Resaltar la primera página por defecto
-            updateSidebarHighlight(0);
+            history.pushState({ modalOpen: true }, '');
+            isModalOpen = true;
         }
 
-        function scrollToPage(index) {
-            const pages = document.querySelectorAll('.viewer-page');
-            if(pages[index]) {
-                // Hacer scroll suave hacia la imagen seleccionada en el contenedor principal
-                pages[index].scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }
-
-        // Detectar qué página se está viendo al hacer scroll
-        function handleViewerScroll() {
-            const mainArea = document.getElementById('viewerMainArea');
-            const pages = document.querySelectorAll('.viewer-page');
+        // Observer para actualizar el panel izquierdo según el scroll vertical
+        function setupViewerObserver() {
+            if(viewerObserver) viewerObserver.disconnect();
+            const options = { root: document.getElementById('viewerMainArea'), rootMargin: '0px', threshold: 0.3 };
             
-            let currentVisibleIndex = 0;
-            let minDistance = Infinity;
-
-            // Encontrar la imagen cuyo borde superior esté más cerca del inicio de la ventana
-            pages.forEach((page, index) => {
-                const rect = page.getBoundingClientRect();
-                const distance = Math.abs(rect.top - mainArea.getBoundingClientRect().top);
-                if(distance < minDistance) {
-                    minDistance = distance;
-                    currentVisibleIndex = index;
-                }
-            });
-
-            updateSidebarHighlight(currentVisibleIndex);
-        }
-
-        function updateSidebarHighlight(index) {
-            // Actualizar texto superior
-            document.getElementById('viewerCurrentPage').innerText = index + 1;
+            viewerObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const pageId = entry.target.dataset.id;
+                        const pageIndex = entry.target.dataset.index;
+                        currentEditingPageId = pageId;
+                        
+                        document.querySelectorAll('.thumb-sidebar-item').forEach(el => el.classList.remove('thumb-active'));
+                        const activeThumb = document.getElementById(`sidebar-thumb-${pageId}`);
+                        if(activeThumb) {
+                            activeThumb.classList.add('thumb-active');
+                        }
+                        document.getElementById('viewerCurrentPage').innerText = pageIndex;
+                    }
+                });
+            }, options);
             
-            // Actualizar borde azul en barra lateral
-            const thumbs = document.querySelectorAll('.viewer-thumb');
-            thumbs.forEach((t, i) => {
-                if(i === index) {
-                    t.classList.add('thumb-active');
-                    // Asegurar que la miniatura activa esté visible en la barra lateral
-                    t.scrollIntoView({ behavior: 'auto', block: 'nearest' });
-                } else {
-                    t.classList.remove('thumb-active');
-                }
+            document.querySelectorAll('.page-container').forEach(container => {
+                viewerObserver.observe(container);
             });
         }
 
         function viewerZoomIn() { viewerZoom += 0.25; updateViewerZoom(); }
         function viewerZoomOut() { viewerZoom = Math.max(0.25, viewerZoom - 0.25); updateViewerZoom(); }
         function updateViewerZoom() {
-            document.getElementById('viewerImagesContainer').style.transform = `scale(${viewerZoom})`;
-            document.getElementById('viewerZoomLabel').innerText = `${Math.round(viewerZoom * 100)}%`;
+            const pct = Math.round(viewerZoom * 100);
+            document.querySelectorAll('.page-container').forEach(wrapper => {
+                wrapper.style.width = `${pct}%`;
+            });
+            document.getElementById('viewerZoomLabel').innerText = `${pct}%`;
         }
 
-        function closeFullViewer(fromHistory = false) { 
-            if (isModalOpen && !fromHistory) { history.back(); return; }
-            document.getElementById('fullViewerModal').classList.add('hidden'); 
-            isModalOpen = false;
+        function closeFullViewer() { 
+            if (isModalOpen) {
+                history.back();
+            } else {
+                if(isAnnotationMode) toggleAnnotationMode();
+                document.getElementById('fullViewerModal').classList.add('hidden'); 
+            }
         }
 
-        // ==========================================
-        // UTILIDADES
-        // ==========================================
-        function showLoader(text) { 
-            document.getElementById('loaderText').innerText = text;
-            document.getElementById('loader').classList.remove('hidden'); 
+        // --- HERRAMIENTAS: Filtros ---
+        function applyFilterToActive(type) {
+            if(!currentEditingPageId) return;
+            const pageId = currentEditingPageId;
+            const pageObj = allPages.find(p => p.id === pageId);
+            
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width; canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                
+                if(type === 'bw') {
+                    ctx.filter = 'grayscale(100%)';
+                } else if(type === 'contrast') {
+                    ctx.filter = 'contrast(200%)';
+                } else {
+                    ctx.filter = 'none';
+                    img.src = pageObj.originalCrop; 
+                }
+                
+                ctx.drawImage(img, 0, 0);
+                const newData = canvas.toDataURL('image/jpeg', 0.95);
+                
+                pageObj.currentData = type === 'reset' ? pageObj.originalCrop : newData;
+                document.getElementById(`view-img-${pageId}`).src = pageObj.currentData;
+                document.getElementById(`sidebar-img-${pageId}`).src = pageObj.currentData;
+                document.querySelector(`[data-id="${pageId}"] .thumbnail-img`).src = pageObj.currentData;
+            };
+            img.src = type === 'reset' ? pageObj.originalCrop : pageObj.currentData;
         }
-        function hideLoader() { document.getElementById('loader').classList.add('hidden'); }
+
+        // --- HERRAMIENTAS: Firma Electrónica ---
+        function addSignature() {
+            if(!currentEditingPageId) return;
+            const name = prompt("Escribe tu Firma Electrónica para agregarla en la página actual:");
+            if(!name) return;
+            
+            const pageId = currentEditingPageId;
+            const pageObj = allPages.find(p => p.id === pageId);
+            
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width; canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                
+                ctx.font = `italic ${Math.floor(canvas.width / 20)}px serif`;
+                ctx.fillStyle = "#1e3a8a"; 
+                ctx.fillText(name, canvas.width - (canvas.width * 0.4), canvas.height - (canvas.height * 0.1));
+                
+                const newData = canvas.toDataURL('image/jpeg', 0.95);
+                pageObj.currentData = newData;
+                
+                document.getElementById(`view-img-${pageId}`).src = newData;
+                document.getElementById(`sidebar-img-${pageId}`).src = newData;
+                document.querySelector(`[data-id="${pageId}"] .thumbnail-img`).src = newData;
+            };
+            img.src = pageObj.currentData;
+        }
+
+        // --- HERRAMIENTAS: Anotaciones (Dibujo en Canvas) ---
+        function toggleAnnotationMode() {
+            isAnnotationMode = !isAnnotationMode;
+            const btn = document.getElementById('btnAnnotation');
+            btn.classList.toggle('drawing-mode-active');
+            
+            document.querySelectorAll('.page-container canvas').forEach(canvas => {
+                if(isAnnotationMode) {
+                    canvas.classList.remove('pointer-events-none');
+                    setupCanvasDrawing(canvas);
+                } else {
+                    canvas.classList.add('pointer-events-none');
+                    saveCanvasToImage(canvas);
+                }
+            });
+        }
+        
+        function setupCanvasDrawing(canvas) {
+            const ctx = canvas.getContext('2d');
+            const img = canvas.previousElementSibling;
+            
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            
+            ctx.lineWidth = canvas.width / 80;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = 'rgba(250, 204, 21, 0.5)'; // Resaltador amarillo semitransparente
+            
+            let isDrawing = false;
+            
+            const startDraw = (e) => {
+                isDrawing = true;
+                ctx.beginPath();
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                ctx.moveTo((e.clientX || e.touches[0].clientX) - rect.left * scaleX, (e.clientY || e.touches[0].clientY) - rect.top * scaleY);
+            };
+            const draw = (e) => {
+                if(!isDrawing) return;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const x = ((e.clientX || e.touches[0].clientX) - rect.left) * scaleX;
+                const y = ((e.clientY || e.touches[0].clientY) - rect.top) * scaleY;
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            };
+            const endDraw = () => { isDrawing = false; ctx.closePath(); };
+
+            canvas.onmousedown = startDraw; canvas.ontouchstart = startDraw;
+            canvas.onmousemove = draw; canvas.ontouchmove = draw;
+            canvas.onmouseup = endDraw; canvas.ontouchend = endDraw;
+            canvas.onmouseleave = endDraw;
+        }
+
+        function saveCanvasToImage(canvas) {
+            const img = canvas.previousElementSibling;
+            const pageId = canvas.parentElement.dataset.id;
+            const pageObj = allPages.find(p => p.id === pageId);
+            
+            const mergeCanvas = document.createElement('canvas');
+            mergeCanvas.width = canvas.width; mergeCanvas.height = canvas.height;
+            const mCtx = mergeCanvas.getContext('2d');
+            
+            const baseImg = new Image();
+            baseImg.onload = () => {
+                mCtx.drawImage(baseImg, 0, 0, mergeCanvas.width, mergeCanvas.height);
+                mCtx.drawImage(canvas, 0, 0);
+                const newData = mergeCanvas.toDataURL('image/jpeg', 0.95);
+                
+                // Verificamos si se dibujó algo antes de sobrescribir (optimización básica)
+                const isBlank = !canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data.some(channel => channel !== 0);
+                if(!isBlank) {
+                    pageObj.currentData = newData;
+                    img.src = newData;
+                    document.getElementById(`sidebar-img-${pageId}`).src = newData;
+                    document.querySelector(`[data-id="${pageId}"] .thumbnail-img`).src = newData;
+                }
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+            };
+            baseImg.src = pageObj.currentData;
+        }
+
+        // --- HERRAMIENTAS: OCR (Extraer Texto) ---
+        async function runOCR() {
+            if(!currentEditingPageId) return alert("Selecciona o posicionate sobre una página primero.");
+            const pageId = currentEditingPageId;
+            const pageObj = allPages.find(p => p.id === pageId);
+            
+            loader.classList.remove('hidden'); 
+            document.getElementById('loaderText').innerText = "Extrayendo texto de la imagen (OCR)...";
+            
+            try {
+                const result = await Tesseract.recognize(pageObj.currentData, 'spa');
+                loader.classList.add('hidden');
+                
+                const texto = result.data.text.trim();
+                if(texto.length > 0) {
+                    alert("Texto extraído con éxito (Mostrando los primeros caracteres):\n\n" + texto.substring(0, 500) + (texto.length > 500 ? "..." : ""));
+                    console.log("Texto completo OCR:\n", texto);
+                } else {
+                    alert("No se detectó texto en esta página.");
+                }
+            } catch(e) {
+                loader.classList.add('hidden');
+                alert("Ocurrió un error al procesar el reconocimiento de texto.");
+                console.error(e);
+            }
+        }
+
         function deletePage(id) { document.querySelector(`[data-id="${id}"]`).remove(); }
-        function clearAll() { if(confirm("¿Borrar todos los documentos?")) location.reload(); }
+        function clearAll() { if(confirm("¿Borrar todos los documentos?")) { location.reload(); } }
     </script>
 </body>
 </html>
